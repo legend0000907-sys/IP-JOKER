@@ -100,17 +100,17 @@ class _IpJokerHomeState extends State<IpJokerHome> {
 
   Future<Map<String, dynamic>> _probeHttpProxy(String host, int port) async {
     final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 4)
+      ..connectionTimeout = const Duration(seconds: 3)
       ..idleTimeout = const Duration(seconds: 2)
       ..findProxy = (_) => 'PROXY $host:$port';
     final watch = Stopwatch()..start();
     try {
       final request = await client
           .getUrl(Uri.parse('https://www.gstatic.com/generate_204'))
-          .timeout(const Duration(seconds: 6));
+          .timeout(const Duration(seconds: 4));
       request.followRedirects = false;
       request.headers.set(HttpHeaders.userAgentHeader, 'IP-JOKER-Proxy-Check/1.0');
-      final response = await request.close().timeout(const Duration(seconds: 6));
+      final response = await request.close().timeout(const Duration(seconds: 4));
       await response.drain<void>().timeout(const Duration(seconds: 2));
       final status = response.statusCode;
       return {
