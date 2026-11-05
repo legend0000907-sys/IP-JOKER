@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:sing_box/sing_box.dart';
+import 'package:ip_joker/proxy_link.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 Future<void> main() async {
@@ -95,31 +96,11 @@ class _IpJokerHomeState extends State<IpJokerHome> {
 
       switch (action) {
         case 'connect':
-          final host = (args['host'] ?? '').toString().trim();
+          final host = (args['host'] ?? '').toString();
           final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
-          final type = (args['type'] ?? 'HTTP').toString().toUpperCase();
-          if (host.isEmpty ||
-              host.contains(' ') ||
-              host.contains('://') ||
-              port < 1 ||
-              port > 65535 ||
-              !{'HTTP', 'HTTPS', 'SOCKS5'}.contains(type)) {
-            await _reply(id, {
-              'ok': false,
-              'message': 'آدرس، نوع پروکسی یا پورت معتبر نیست',
-            });
-            return;
-          }
+          final type = (args['type'] ?? 'HTTP').toString();
+          final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
-          final scheme = switch (type) {
-            'SOCKS5' => 'socks5',
-            'HTTPS' => 'https',
-            _ => 'http',
-          };
-          final normalizedHost =
-              host.startsWith('[') && host.endsWith(']') ? host.substring(1, host.length - 1) : host;
-          final safeHost = normalizedHost.contains(':') ? '[$normalizedHost]' : normalizedHost;
-          final proxyLink = '$scheme://$safeHost:$port';
           await SingBox.instance.connect(proxyLink);
           await _reply(id, {
             'ok': true,
