@@ -22,5 +22,12 @@ android {
         versionCode 3
         versionName "0.3.0"
     }
+    buildTypes {
+        release {
+            // Temporary test signing so Android accepts the APK.
+            // Replace with a private release keystore before public distribution.
+            signingConfig signingConfigs.debug
+        }
+    }
 }
 flutter { source "../.." }
