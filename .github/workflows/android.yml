@@ -6,22 +6,54 @@ on:
       - 'mobile/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Flutter stable
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Get Flutter dependencies
+
+      - name: Generate Android Gradle wrapper
+        run: |
+          flutter create --platforms=android --project-name ip_joker --org com.ipjoker --no-pub _wrapper_tmp
+          cp _wrapper_tmp/android/gradlew mobile/android/gradlew
+          cp _wrapper_tmp/android/gradlew.bat mobile/android/gradlew.bat
+          mkdir -p mobile/android/gradle/wrapper
+          cp _wrapper_tmp/android/gradle/wrapper/* mobile/android/gradle/wrapper/
+          chmod +x mobile/android/gradlew
+          rm -rf _wrapper_tmp
+
+      - name: Resolve Flutter packages
         working-directory: mobile
         run: flutter pub get
-      - name: Build Android APK
+
+      - name: Static analysis
+        working-directory: mobile
+        run: flutter analyze
+
+      - name: Build release APK (ARM64)
         working-directory: mobile
         run: flutter build apk --release --target-platform android-arm64
-      - uses: actions/upload-artifact@v4
+
+      - name: Generate checksum
+        working-directory: mobile
+        run: sha256sum build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/SHA256SUMS.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: IP-JOKER-android-arm64
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          name: IP-JOKER-Android-ARM64
+          path: |
+            mobile/build/app/outputs/flutter-apk/app-release.apk
+            mobile/build/app/outputs/flutter-apk/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
