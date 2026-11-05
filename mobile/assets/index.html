@@ -186,10 +186,22 @@ function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>$
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
 H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
-const GH=`TheSpeedX/PROXY-List/master/http.txt TheSpeedX/SOCKS-List/master/http.txt monosans/proxy-list/main/proxies/http.txt monosans/proxy-list/main/proxies_anonymous/http.txt ShiftyTR/Proxy-List/master/http.txt ShiftyTR/Proxy-List/master/https.txt clarketm/proxy-list/master/proxy-list-raw.txt jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt jetkai/proxy-list/main/online-proxies/txt/proxies-https.txt jetkai/proxy-list/main/online-proxies/txt/proxies.txt roosterkid/openproxylist/main/HTTPS_RAW.txt mmpx12/proxy-list/master/http.txt mmpx12/proxy-list/master/https.txt Zaeem20/FREE_PROXIES_LIST/master/http.txt Zaeem20/FREE_PROXIES_LIST/master/https.txt proxifly/free-proxy-list/main/proxies/protocols/http/data.txt proxifly/free-proxy-list/main/proxies/all/data.txt MuRongPIG/Proxy-Master/main/http.txt prxchk/proxy-list/main/http.txt vakhov/fresh-proxy-list/master/http.txt vakhov/fresh-proxy-list/master/https.txt officialputuid/KangProxy/KangProxy/http/http.txt officialputuid/KangProxy/KangProxy/https/https.txt sunny9577/proxy-scraper/master/generated/http_proxies.txt sunny9577/proxy-scraper/master/proxies.txt zloi-user/hideip.me/main/http.txt zloi-user/hideip.me/main/https.txt rdavydov/proxy-list/main/proxies/http.txt ErcinDedeoglu/proxies/main/proxies/http.txt ErcinDedeoglu/proxies/main/proxies/https.txt Anonym0usWork1221/Free-Proxies/main/proxy_files/http_proxies.txt Anonym0usWork1221/Free-Proxies/main/proxy_files/https_proxies.txt saschazesiger/Free-Proxies/master/proxies/http.txt almroot/proxylist/master/list.txt opsxcq/proxy-list/master/list.txt B4RC0DE-TM/proxy-list/main/HTTP.txt ALIILAPRO/Proxy/main/http.txt elliottophellia/proxylist/master/results/http/global/http_checked.txt yemixzy/proxy-list/main/proxies/http.txt Skiddle-ID/proxylist/main/proxies.txt Tsprnay/Proxy-lists/master/proxies/http.txt UptimerBot/proxy-list/master/proxies/http.txt r00tee/Proxy-List/main/Https.txt mertguvencli/http-proxy-list/main/proxy-list/data.txt manuGMG/proxy-365/main/HTTP.txt zevtyardt/proxy-list/main/http.txt hendrikbgr/Free-Proxy-Repo/master/proxy_list.txt RX4096/proxy-list/main/online/http.txt proxy4parsing/proxy-list/main/http.txt ObcbO/getproxy/master/file/http.txt Volodichev/proxy-list/main/http.txt HyperBeats/proxy-list/main/http.txt TuanMinPay/live-proxy/master/http.txt saisuiu/Lionkings-Http-Proxys-Proxies/main/free.txt themiralay/Proxy-List-World/master/data.txt MrMarble/proxy-list/main/all.txt fyvri/fresh-proxy-list/archive/txt/http.txt ProxyScraper/ProxyScraper/main/http.txt dpangestuw/Free-Proxy/main/http_proxies.txt andigwandi/free-proxy/main/proxy_list.txt caliphdev/Proxy-List/master/http.txt gfpcom/free-proxy-list/main/list/http.txt`.split(/\s+/);
-const API=["https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all","https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=all&ssl=yes&anonymity=elite","https://www.proxy-list.download/api/v1/get?type=http","https://www.proxy-list.download/api/v1/get?type=https","https://openproxylist.xyz/http.txt","https://spys.me/proxy.txt","https://proxyspace.pro/http.txt","https://multiproxy.org/txt_all/proxy.txt","https://www.proxyscan.io/download?type=http"];
-const px=u=>["https://api.allorigins.win/raw?url="+encodeURIComponent(u),"https://corsproxy.io/?"+encodeURIComponent(u)];
-const SRC=[...GH.map(x=>{const[o,r,b,...f]=x.split("/"),p=f.join("/");const u=`https://raw.githubusercontent.com/${o}/${r}/${b}/${p}`,j=`${o}/${r}@${b}/${p}`,q=`${o}/${r}/${b}/${p}`;return[o+"/"+r,[u,`https://cdn.jsdelivr.net/gh/${j}`,`https://fastly.jsdelivr.net/gh/${j}`,`https://gcore.jsdelivr.net/gh/${j}`,`https://testingcf.jsdelivr.net/gh/${j}`,`https://raw.gitmirror.com/${q}`,`https://cdn.statically.io/gh/${q}`,...px(u),"https://ghproxy.net/"+u,"https://gh-proxy.com/"+u]]}),...API.map(u=>[new URL(u).hostname,[u,...px(u)]])];
+const SOURCE_URLS=[
+ ["ProxyScrape API","https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"],
+ ["Litport","https://raw.githubusercontent.com/litportnet/free-proxy-list/live/proxies/http.txt"],
+ ["VMHeaven","https://raw.githubusercontent.com/vmheaven/VMHeaven-Free-Proxy-Updated/refs/heads/main/http.txt"],
+ ["KangProxy","https://cdn.jsdelivr.net/gh/officialputuid/KangProxy@main/http/http.txt"],
+ ["Monosans","https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"],
+ ["Tsprnay","https://raw.githubusercontent.com/Tsprnay/Proxy-lists/master/proxies/http.txt"],
+ ["ObcbO","https://raw.githubusercontent.com/ObcbO/getproxy/master/file/http.txt"],
+ ["ProxyScraper","https://raw.githubusercontent.com/ProxyScrape/ProxyScraper/main/http.txt"],
+ ["dpangestuw","https://raw.githubusercontent.com/dpangestuw/Free-Proxy/main/http_proxies.txt"],
+ ["gfpcom","https://raw.githubusercontent.com/gfpcom/free-proxy-list/main/list/http.txt"],
+ ["TheSpeedX","https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"],
+ ["jetkai","https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt"]
+];
+const SRC=SOURCE_URLS.map(([name,url])=>[name,[url]]);
+const px=u=>["https://api.allorigins.win/raw?url="+encodeURIComponent(u)];
 const host=u=>{try{return new URL(u).hostname}catch(e){return u}};
 const DLE={};
 function dlE(e){const k=e.name=="AbortError"?"timeout":/HTTP \d+/.test(e.message||"")?"http":"net";DLE[k]=(DLE[k]||0)+1}
@@ -201,12 +213,12 @@ else m="❌ اینترنت هست ولی سایت‌های لیست (گیت‌ه
 L("DL","fail "+JSON.stringify(DLE)+" net="+net);return m}
 async function getTxt(us){
   // Mirrorهای اصلی را موازی امتحان می‌کنیم؛ اولین پاسخ متنیِ دارای IP:PORT معتبر برنده است.
-  const candidates=[...new Set(us)].slice(0,4);
+  const candidates=[...new Set(us)].slice(0,2);
   return await new Promise(resolve=>{
     let pending=candidates.length, settled=false;
     if(!pending)return resolve("");
     for(const u of candidates){
-      nget(u,6500).then(r=>{
+      nget(u,9000).then(r=>{
         if(!r.ok)throw new Error("HTTP "+r.status);
         const t=String(r.text||"").trim();
         if(t.length<8 || /<html|<!doctype|rate limit exceeded|repository not found|404: not found/i.test(t.slice(0,500)))throw new Error("پاسخ، لیست متنی معتبر نیست");
@@ -290,14 +302,14 @@ async function runFind(){
   if(!items.length){fprog(0,await failWhy());return}
   L("INFO","Finder candidates: "+items.length+" IP:PORT from "+ok+" sources");
   let done=0,failedFast=0;
-  await pool(items,24,async item=>{
+  await pool(items,75,async item=>{
    if(S.stop)return;
    const parts=item.split(":");if(parts.length!==2)return;
    const [h,p]=parts,r=await probe(h,p,mx);
    done++;
    if(r.r==="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms,verified:true});if(S.found.length%4===1)showFound()}
    else if(r.r==="err"&&r.ms<40)failedFast++;
-   if(done%15===0||done===items.length){
+   if(done%5===0||done===items.length){
     fprog(18+Math.round(done/items.length*82),`تست ${done} از ${items.length} · پروکسی تأییدشده: ${S.found.length}`);
    }
   },()=>S.stop);
