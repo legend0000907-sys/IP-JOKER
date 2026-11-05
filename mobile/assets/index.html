@@ -10,23 +10,23 @@
 html,body{height:100%;margin:0;overscroll-behavior:none;touch-action:manipulation}
 body{height:100vh;height:100dvh;color:var(--fg);font-family:Vazirmatn,Tahoma,system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;
 background:radial-gradient(120% 60% at 50% -10%,rgba(var(--rgb),.28),transparent 60%),radial-gradient(80% 40% at 100% 100%,rgba(var(--rgb),.12),transparent 60%),var(--bg)}
-\n.top-brand{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(7px + env(safe-area-inset-top)) 16px 4px;color:var(--mu);font-family:Arial,sans-serif;font-size:11px;letter-spacing:.35px}.top-brand .tel{color:var(--ac2);font-weight:700;font-size:12px}.top-brand .dev{font-size:10px;opacity:.85}\nheader{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px}
+.top-brand{direction:ltr;display:flex;flex-direction:column;align-items:flex-start;gap:5px;width:max-content;max-width:100%;margin:0 auto 0 0;padding:calc(7px + env(safe-area-inset-top)) 14px 5px;color:var(--mu);font-family:Arial,sans-serif;letter-spacing:.25px}.top-brand .dev{font-size:10px;opacity:.9;color:#c5c2d7}.top-brand .telegram-brand{display:flex;align-items:center;gap:6px;color:var(--ac2);font-size:12px;font-weight:800;direction:ltr}.top-brand .telegram-brand svg{width:17px;height:17px;display:block;filter:drop-shadow(0 2px 5px rgba(42,171,238,.35))}header{display:flex;align-items:center;gap:10px;padding:8px 16px 8px}
 .logo{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;font-size:22px;box-shadow:0 6px 20px rgba(var(--rgb),.45)}
 header h1{margin:0;font-size:18px;letter-spacing:.5px;flex:1}header h1 small{display:block;font-size:11px;color:var(--mu);font-weight:normal;letter-spacing:0}
 .dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mu);background:rgba(255,255,255,.05);padding:5px 10px;border-radius:20px}.dot i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.off i{background:var(--bad);box-shadow:0 0 8px var(--bad)}
-#view{flex:1;overflow-y:auto;padding:8px 14px calc(100px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;animation:in .3s ease}
+#view{flex:1;overflow-y:auto;padding:8px 14px calc(100px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;animation:in .18s ease}
 @keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:2px;padding:6px;border-radius:26px;background:rgba(18,18,29,.82);-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid var(--bd);box-shadow:0 10px 30px rgba(0,0,0,.5)}
 nav button{flex:1;background:none;border:0;border-radius:20px;color:var(--mu);padding:8px 0 6px;font:inherit;font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.2s}
 nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav button.on{color:#fff;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 4px 14px rgba(var(--rgb),.5)}
-.card{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--c1);border:1px solid var(--bd);border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--c1);border:1px solid var(--bd);border-radius:20px;padding:15px;margin-bottom:12px;box-shadow:0 5px 16px rgba(0,0,0,.22)}
 .card h3{margin:0 0 10px;font-size:14.5px;display:flex;align-items:center;gap:8px}.card h3 b{width:28px;height:28px;border-radius:9px;background:rgba(var(--rgb),.18);display:grid;place-items:center;font-size:15px;font-weight:normal}
 .hero{text-align:center;padding:22px 16px}
 .ring{width:110px;height:110px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;font-size:54px;background:radial-gradient(circle,rgba(var(--rgb),.25),transparent 70%);border:2px solid rgba(var(--rgb),.5);box-shadow:0 0 40px rgba(var(--rgb),.35),inset 0 0 20px rgba(var(--rgb),.2)}
 .ring.spin{animation:pulse 1.2s infinite}@keyframes pulse{50%{box-shadow:0 0 60px rgba(var(--rgb),.7),inset 0 0 20px rgba(var(--rgb),.2)}}
 .ip{font:700 24px ui-monospace,Menlo,monospace;direction:ltr;margin:4px 0}
-input,select,textarea{width:100%;padding:13px 14px;margin:5px 0;border-radius:14px;border:1px solid var(--bd);background:rgba(0,0,0,.28);color:var(--fg);font:inherit;font-size:16px;outline:0;transition:.2s;-webkit-user-select:text;user-select:text}
+input,select,textarea{width:100%;padding:13px 14px;margin:5px 0;border-radius:14px;border:1px solid var(--bd);background:rgba(0,0,0,.28);color:var(--fg);font:inherit;font-size:16px;outline:0;transition:border-color .16s,box-shadow .16s;-webkit-user-select:text;user-select:text}
 input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--rgb),.2)}
 input{direction:ltr;text-align:left}textarea{min-height:100px;direction:ltr;resize:none}
 .btn{padding:12px 16px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font:inherit;font-weight:bold;font-size:14px;margin:4px 0;box-shadow:0 6px 16px rgba(var(--rgb),.35);transition:.15s}
@@ -74,7 +74,8 @@ pre{direction:ltr;text-align:left;font:11px/1.6 ui-monospace,Menlo,monospace;whi
   };
 })();
 </script></head><body>
-<div class="top-brand"><span class="tel">tel : IP_JOKER</span><span class="dev">Developer: Ermiya &amp; Abbas</span></div>\n<header><div class="logo">🃏</div><h1>IP JOKER<small>پروکسی‌یاب · DNS · ابزار شبکه</small></h1><div class="dot" id="net"><i></i><span>آنلاین</span></div></header>
+<div class="top-brand"><span class="dev">Developer: Ermiya &amp; Abbas</span><span class="telegram-brand"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#229ED9"/><path d="M18.7 6.8 16.3 18c-.18.8-.65.98-1.32.61l-3.65-2.69-1.76 1.7c-.2.2-.36.36-.74.36l.26-3.72 6.77-6.12c.3-.26-.07-.4-.47-.14L7.02 13.2l-3.6-1.13c-.78-.24-.8-.78.16-1.15l14.1-5.44c.65-.24 1.22.16 1.02 1.32Z" fill="#fff"/></svg><span>_IP_JOKER</span></span></div>
+<header><div class="logo">🃏</div><h1>IP JOKER<small>پروکسی‌یاب · DNS · ابزار شبکه</small></h1><div class="dot" id="net"><i></i><span>آنلاین</span></div></header>
 <div id="view"></div><nav id="nav"></nav>
 <script>
 const $=s=>document.querySelector(s),H=(s,h)=>{const e=$(s);if(e)e.innerHTML=h;return e},T=(s,t)=>{const e=$(s);if(e)e.textContent=t};
@@ -219,7 +220,7 @@ async function getTxt(us){
   });
 }
 V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی کاندیداهای HTTP</h3>
-<div class="mu">از ${SRC.length} منبع لیست دانلود می‌کند، داده‌های IP:PORT را جمع می‌کند و برای هر کاندیدا از داخل سرویس اندروید درخواست HTTPS واقعی از طریق خود پروکسی ارسال می‌شود. فقط پروکسی‌هایی که تونل CONNECT واقعی و پاسخ مقصد را بدهند زنده حساب می‌شوند. این نسخه فهرست HTTP را بررسی می‌کند؛ SOCKS5 و HTTPS proxy جداگانه هنوز پشتیبانی نمی‌شوند.</div>
+<div class="mu">از ${SRC.length} منبع لیست دانلود می‌کند، داده‌های IP:PORT را جمع می‌کند و همهٔ منابع را تا سقف ۶۰هزار کاندیدا بررسی می‌کند. سپس برای هر کاندیدا از داخل سرویس اندروید درخواست HTTPS واقعی از طریق خود پروکسی ارسال می‌شود. فقط پروکسی‌هایی که تونل CONNECT واقعی و پاسخ مقصد را بدهند زنده حساب می‌شوند. این نسخه فهرست HTTP را بررسی می‌کند؛ SOCKS5 و HTTPS proxy جداگانه هنوز پشتیبانی نمی‌شوند.</div>
 <div class="row"><select id="fn">${[5000,10000,20000].map(v=>`<option value="${v}" ${v==fn?"selected":""}>${v} آی‌پی</option>`).join("")}</select><input id="fm" class="fx" value="${S.fmx}" inputmode="numeric"></div><div class="mu" style="margin-top:-2px">عدد سمت چپ: حداکثر پینگ مجاز (ms)؛ بالاتر از آن در زنده‌ها نمی‌آید</div>
 <div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 نیمه‌امن و ایمن"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
 <input id="fu" placeholder="آدرس لیست دلخواه (اختیاری) https://..."><textarea id="ft" placeholder="یا لیست IP:PORT را اینجا بچسبان (اختیاری)" style="min-height:60px"></textarea><div class="mu">یا فایل لیست (txt):</div><input id="ff" type="file" accept=".txt,text/plain" style="font-size:12px"><div class="row"><button class="btn" id="fs" onclick="runFind()" ${b?"disabled":""}>▶️ دانلود و اسکن</button><button class="btn alt" onclick="S.stop=true">⏹ توقف</button></div>
@@ -256,17 +257,62 @@ const done=S.chk.filter(Boolean),ok=done.filter(x=>x.n>0).length,bad=done.length
 const deadNames=S.chk.map((x,i)=>x&&x.n==0?srcName(i):null).filter(Boolean);if(!S.stopC&&ok>=3)st.set("dead",{ts:Date.now(),n:deadNames});
 cp(100,`${S.stopC?"متوقف شد · ":""}<b>${ok}</b> از ${done.length} منبع IP معتبر دارند · ${bad} خالی/خراب · مجموع ${all.size} IP:PORT یکتا`+(ok<3?" · ⚠️ تعداد منابع فعال خیلی کم است؛ احتمالاً شبکه/فیلتر مشکل دارد، پس منبعی کنار گذاشته نشد":""));
 L("SRC",`checked ${done.length}: ok=${ok} bad=${bad} unique=${all.size} dead=${deadNames.join(",")}`);S.busy.chk=0;if(S.tab=="find"){showChk();const b=$("#cb");if(b)b.disabled=false}}
-async function runFind(){if(S.busy.find)return;S.busy.find=1;S.stop=false;S.found=[];S.pst={};for(const k in DLE)delete DLE[k];const n=S.fn=+($("#fn")||{}).value||5000,mx=+($("#fm")||{}).value||400;S.fmx=mx;const fsb=$("#fs");if(fsb)fsb.disabled=true;S.sp=0;S.sm="";fprog(0,`دانلود از ${SRC.length} منبع...`);showFound();const all=new Set;let ok=0,k=0;const pt=($("#ft")||{}).value||"";parseList(pt,all);try{const ff=$("#ff"),f=ff&&ff.files&&ff.files[0];if(f){const tx=await f.text();parseList(tx,all);L("INFO","file "+f.name)}}catch(e){L("ERR","file: "+e.message)}
-const cu=(($("#fu")||{}).value||"").trim(),base=SRC,srcs=cu?[["custom",[cu,...px(cu)]],...base]:base;S.minsec=0;st.set("minsec",0);
-await pool(srcs.slice(),4,async([nm,us])=>{const t=await getTxt(us),b=all.size;parseList(t,all);if(all.size>b)ok++;else L("WARN","منبع خالی/ناموفق: "+nm);k++;fprog(Math.round(k/srcs.length*20),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی: ${all.size}`)},()=>S.stop||all.size>=n*2);
-if(S.stop){fprog(0,"متوقف شد");S.busy.find=0;if(S.tab=="find")V.find();return}
-if(all.size)st.set("lc",[...all].slice(0,6000));else{const c=st.get("lc",[]);if(c.length){c.forEach(x=>all.add(x));L("INFO","cache "+c.length);fprog(20,"⚠️ دانلود نشد؛ از آخرین لیست ذخیره‌شده استفاده شد ("+c.length+")")}}
-const items=[...all].sort(()=>Math.random()-.5).slice(0,n);
-if(!items.length){fprog(0,await failWhy());S.busy.find=0;if(S.tab=="find")V.find();return}
-L("INFO","Finder candidates: "+items.length+" IP:PORT from "+ok+" sources");let d=0,fe=0;
-await pool(items,8,async it=>{const[h,p]=it.split(":");const r=await probe(h,p,mx);d++;if(r.r=="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms,verified:true});if(S.found.length%10===0)showFound()}else if(r.r=="err"&&r.ms<40)fe++;if(d%25==0||d==items.length)fprog(20+Math.round(d/items.length*80),`تست ${d} از ${items.length} · پاسخ‌گو (زیر ${mx}ms): ${S.found.length}`)},()=>S.stop);
-const warn=d>=200&&!S.found.length&&fe/d>.9?" ⚠️ تقریباً همه فوراً رد شدند؛ احتمالاً وب‌ویو ترافیک http را مسدود می‌کند (cleartext/mixed-content را در APK فعال کن).":"";
-fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پورت پاسخ‌گو (زیر ${mx}ms) از ${d} تست‌شده${warn}`);L("INFO","Finder done: "+S.found.length+" HTTP CONNECT-verified proxies");if(S.found.length&&!S.stop)showFound();S.busy.find=0;if(S.tab=="find")V.find()}
+function shuffleList(a){const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+async function runFind(){
+ if(S.busy.find||S.busy.chk)return toast("یک عملیات در حال اجراست");
+ S.busy.find=1;S.stop=false;S.found=[];S.pst={};for(const k in DLE)delete DLE[k];
+ const n=Math.max(1,Math.min(20000,+($("#fn")||{}).value||5000));
+ const mx=Math.max(100,Math.min(30000,+($("#fm")||{}).value||400));S.fn=n;S.fmx=mx;
+ const fsb=$("#fs");if(fsb)fsb.disabled=true;
+ S.sp=0;S.sm="";fprog(0,`دانلود از ${SRC.length} منبع...`);showFound();
+ const all=new Set;let ok=0,k=0;const pt=($("#ft")||{}).value||"";
+ parseList(pt,all);
+ try{
+  const ff=$("#ff"),file=ff&&ff.files&&ff.files[0];
+  if(file){const tx=await file.text();parseList(tx,all);L("INFO","file "+file.name)}
+  const cu=(($("#fu")||{}).value||"").trim(),base=SRC;
+  const srcs=cu?[["custom",[cu,...px(cu)]],...base]:base;
+  S.minsec=0;st.set("minsec",0);
+  await pool(srcs.slice(),3,async([nm,us])=>{
+   if(S.stop)return;
+   const t=await getTxt(us),before=all.size;
+   parseList(t,all);
+   if(all.size>before)ok++;else L("WARN","منبع خالی/ناموفق: "+nm);
+   k++;fprog(Math.round(k/srcs.length*18),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی یکتا: ${all.size}`);
+  },()=>S.stop||all.size>=60000);
+  if(S.stop){fprog(0,"دانلود متوقف شد");return}
+  if(all.size)st.set("lc",shuffleList([...all]).slice(0,6000));
+  else{
+   const cache=st.get("lc",[]);
+   if(cache.length){cache.forEach(x=>all.add(x));L("INFO","cache "+cache.length);fprog(18,"⚠️ دانلود نشد؛ از آخرین فهرست ذخیره‌شده استفاده شد ("+cache.length+")")}
+  }
+  const items=shuffleList([...all]).slice(0,n);
+  if(!items.length){fprog(0,await failWhy());return}
+  L("INFO","Finder candidates: "+items.length+" IP:PORT from "+ok+" sources");
+  let done=0,failedFast=0;
+  await pool(items,6,async item=>{
+   if(S.stop)return;
+   const parts=item.split(":");if(parts.length!==2)return;
+   const [h,p]=parts,r=await probe(h,p,mx);
+   done++;
+   if(r.r==="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms,verified:true});showFound()}
+   else if(r.r==="err"&&r.ms<40)failedFast++;
+   if(done%15===0||done===items.length){
+    fprog(18+Math.round(done/items.length*82),`تست ${done} از ${items.length} · پروکسی تأییدشده: ${S.found.length}`);
+   }
+  },()=>S.stop);
+  const warn=done>=100&&!S.found.length&&failedFast/done>.8?" ⚠️ تقریباً همهٔ تست‌ها سریع رد شدند؛ اتصال سرویس اندروید یا دسترسی شبکه را بررسی کن.":"";
+  fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پروکسی تأییدشده از ${done} تست · ${ok} منبع فعال${warn}`);
+  L("INFO",`Finder done: ${S.found.length} verified from ${done} tests`);
+ }catch(e){
+  L("ERR","Finder: "+(e&&e.message||e));
+  fprog(S.fp,"❌ خطای اسکن: "+(e&&e.message||"خطای ناشناخته"));
+ }finally{
+  S.busy.find=0;
+  const b=$("#fs");if(b)b.disabled=false;
+  if(S.tab==="find"){V.find();showFound();showChk()}
+ }
+}
 // ---------- tools
 V.tools=()=>{H("#view",`
 <div class="card"><h3><b>🔬</b>تحلیل IP (پورت و نوع پروکسی)</h3><div class="mu">آی‌پی را از سایت «my ip» کپی کن و اینجا بچسبان (IPv4 یا IPv6، با پورت یا بدون پورت). پورت‌ها را اسکن می‌کند و HTTP / HTTPS / (احتمال) SOCKS5 را مشخص می‌کند.</div><input id="ai" placeholder="1.2.3.4 یا 1.2.3.4:1080 یا [2001:db8::1]"><input id="ap" placeholder="پورت یا بازه (خالی = پورت‌های رایج) مثل 1080,8080 یا 1-1024" inputmode="numeric"><div class="row"><button class="btn" id="ab" onclick="analyze()">🔬 تحلیل</button><button class="btn alt" onclick="S.stopA=true">⏹ توقف</button></div><button class="btn alt full" onclick="$('#ai').value='127.0.0.1';analyze()">📱 اسکن خود گوشی (127.0.0.1)</button><div class="bar"><i id="abar" style="width:0%"></i></div><div id="am" class="mu"></div><div id="ar"></div><div class="note">آی‌پی که سایت my ip نشان می‌دهد معمولاً آی‌پی سرور فیلترشکن است و اغلب پروکسی باز ندارد؛ پس ممکن است چیزی پیدا نشود. اگر فیلترشکن روی خود گوشی است، دکمهٔ «اسکن خود گوشی» را بزن.</div></div>
