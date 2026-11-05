@@ -68,7 +68,7 @@ pre{direction:ltr;text-align:left;font:11px/1.6 ui-monospace,Menlo,monospace;whi
     getStatus:()=>call("status",{}),
     saveProfile:(host,port,type)=>call("save",{host,port,type},false),
     saveCurrentProfile:(host,port,type)=>call("save",{host,port,type},false),
-    getSavedProfiles:()=>"[]"
+    getSavedProfiles:()=>"[]",\n    fetchText:url=>call("fetchText",{url}),\n    probeProxy:(host,port,type)=>call("probeProxy",{host,port,type})
   };
 })();
 </script></head><body>
@@ -99,11 +99,24 @@ const NH=()=>NATIVE&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Capacito
 const NOHTTPS='<div class="note"><b class="a">⚠️ این صفحه روی https باز شده</b><br>ممکن است مرورگر/وب‌ویو درخواست http را مسدود کند. در APK باید cleartext و mixed-content فعال باشد، وگرنه همه تست‌ها ناموفق می‌شوند.</div>';
 const flagOf=c=>c&&c.length==2?String.fromCodePoint(...[...c.toUpperCase()].map(x=>127397+x.charCodeAt(0))):"🌐";
 async function tf(u,ms=12000,o={}){const c=new AbortController(),id=setTimeout(()=>c.abort(),ms);try{return await fetch(u,{...o,signal:c.signal})}finally{clearTimeout(id)}}
-async function nget(u,ms=9000){const h=NH();if(h){try{const r=await Promise.race([h.get({url:u,connectTimeout:ms,readTimeout:ms,responseType:"text"}),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),ms+1500))]);return{ok:r.status>=200&&r.status<300,status:r.status,text:typeof r.data=="string"?r.data:JSON.stringify(r.data)}}catch(e){if(!/not implemented|unimplemented|not available/i.test(String(e&&e.message||e)))throw e;L("WARN","native http unavailable; using fetch")}}
-const r=await tf(u,ms,{cache:"no-store"});return{ok:r.ok,status:r.status,text:await r.text()}}
+async function nget(u,ms=9000){
+ const bridge=window.IPJokerVPN;
+ if(bridge&&typeof bridge.fetchText==="function"){
+  const r=await Promise.race([bridge.fetchText(u),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),ms+1500))]);
+  return{ok:!!r.ok,status:r.status||0,text:r.text||""};
+ }
+ const r=await tf(u,ms,{cache:"no-store"});return{ok:r.ok,status:r.status,text:await r.text()}
+}
 async function geo(ip=""){try{const d=JSON.parse((await nget("https://ipwho.is/"+ip,9000)).text);if(!d.success)throw 0;return d}catch(e){const d=JSON.parse((await nget("https://ipapi.co/"+(ip?ip+"/":"")+"json/",9000)).text);if(d.error||!d.ip)throw new Error("پاسخ معتبر نیامد");return{ip:d.ip,country:d.country_name,flag:{emoji:flagOf(d.country_code)},city:d.city,connection:{isp:d.org}}}}
 const geoHtml=d=>`<div class="kv"><span>IP</span><span>${esc(d.ip)}</span></div><div class="kv"><span>کشور</span><span>${esc((d.flag&&d.flag.emoji||"")+" "+(d.country||"-"))}</span></div><div class="kv"><span>شهر</span><span>${esc(d.city||"-")}</span></div><div class="kv"><span>ISP</span><span>${esc(d.connection&&d.connection.isp||"-")}</span></div>`;
-async function probe(h,p,to,sc="http"){const t=performance.now(),c=new AbortController(),id=setTimeout(()=>c.abort(),to);try{await fetch(`${sc}://${String(h).includes(":")?"["+h+"]":h}:${p}/`,{mode:"no-cors",signal:c.signal,cache:"no-store"});return{r:"ok",ms:Math.round(performance.now()-t)}}catch(e){return{r:c.signal.aborted?"to":"err",ms:Math.round(performance.now()-t)}}finally{clearTimeout(id)}}
+async function probe(h,p,to,sc="http"){
+ const t=performance.now(),bridge=window.IPJokerVPN;
+ if(!bridge||typeof bridge.probeProxy!=="function")return{r:"unsupported",ms:0,message:"تست واقعی فقط در APK انجام می‌شود"};
+ try{
+  const r=await Promise.race([bridge.probeProxy(h,+p,"HTTP"),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),to+1500))]);
+  return{r:r&&r.ok?"ok":"err",ms:r&&r.ms!=null?r.ms:Math.round(performance.now()-t),message:r&&r.message||""};
+ }catch(e){return{r:"err",ms:Math.round(performance.now()-t),message:e.message||String(e)}}
+}
 async function pool(a,n,fn,stop){let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<a.length&&!stop()){const x=a[i++];try{await fn(x)}catch(e){}}}))}
 const msb=ms=>`<span class="badge ${ms<400?"g":ms<1200?"a":"r"}">${ms}ms</span>`;
 const V={};
@@ -163,7 +176,7 @@ if(rep.crawler){s-=10;why.push("کرالر/اسکنر")}if(rep.sc>.05){s-=25;bad
 if(!rep.abuser&&!rep.tor&&!rep.crawler&&!rep.bogon&&rep.sc<=.01){s+=20;why.push("سابقهٔ تمیز")}}
 if(ms<=(S.fmx||400)/2)s+=5;s=Math.max(0,Math.min(cap,s));if(bad.length)s=Math.min(s,45);
 return{s,lv:bad.length?0:s>=75?2:s>=50?1:0,why,bad}}
-async function secOne(h,p,ms){const[t,rep]=await Promise.all([pr2(hp(h,p,"https"),3000),repOf(h)]);const r=scoreSec({h,p,ms:ms==null?9e9:ms,tls:t.r=="ok",rep});r.rep=rep;r.tls=t.r=="ok";L("SEC",`${h}:${p} → ${LV[r.lv][0]} ${r.s} ${r.bad.concat(r.why).join(",")}`);return r}
+async function secOne(h,p,ms){const rep=await repOf(h);const r=scoreSec({h,p,ms:ms==null?9e9:ms,tls:false,rep});r.rep=rep;r.tls=false;L("SEC",`${h}:${p} → ${LV[r.lv][0]} ${r.s} ${r.bad.concat(r.why).join(",")}`);return r}
 const secBadge=r=>`<span class="badge ${LV[r.lv][1]}">${LV[r.lv][2]} ${LV[r.lv][0]} · ${r.s}</span>`;
 const secWhy=r=>(r.bad.map(x=>"⛔ "+x).concat(r.why.map(x=>"• "+x))).map(esc).join(" · ")+(r.rep&&r.rep.org?" · "+esc(r.rep.org):"");
 function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">«ایمن» یعنی هیچ علامت خطری پیدا نشد؛ پروکسی رایگان هیچ‌وقت تضمین ۱۰۰٪ ندارد. اطلاعات حساس (بانک/رمز) را از پروکسی عمومی رد نکن.</div>`}
@@ -185,7 +198,7 @@ else m="❌ اینترنت هست ولی سایت‌های لیست (گیت‌ه
 L("DL","fail "+JSON.stringify(DLE)+" net="+net);return m}
 async function getTxt(us){
   // Mirrorهای اصلی را موازی امتحان می‌کنیم؛ اولین پاسخ متنیِ دارای IP:PORT معتبر برنده است.
-  const candidates=[...new Set(us)].slice(0,5);
+  const candidates=[...new Set(us)].slice(0,2);
   return await new Promise(resolve=>{
     let pending=candidates.length, settled=false;
     if(!pending)return resolve("");
@@ -204,7 +217,7 @@ async function getTxt(us){
   });
 }
 V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی کاندیداهای HTTP</h3>
-<div class="mu">از ${SRC.length} منبع لیست دانلود می‌کند، داده‌های IP:PORT را جمع می‌کند و دسترسی HTTP به پورت را به‌صورت تقریبی می‌سنجد؛ این تست پروکسی‌بودن را قطعی تأیید نمی‌کند (آی‌پی عمومی؟ پورت مناسب؟ TLS؟ سابقهٔ سوءاستفاده؟) و فقط پروکسی‌های هم‌سطح یا بالاتر از «حداقل ایمنی» را نشان می‌دهد. «پاسخ‌گو» فقط یعنی درخواست مستقیم به آن آدرس خطای شبکه نداده؛ این روش نمی‌تواند پروکسی بودن یا کارکرد آن برای برنامه‌های دیگر را تأیید کند. SOCKS5 در مرورگر قابل تست نیست.</div>
+<div class="mu">از ${SRC.length} منبع لیست دانلود می‌کند، داده‌های IP:PORT را جمع می‌کند و برای هر کاندیدا از داخل سرویس اندروید درخواست HTTPS واقعی از طریق خود پروکسی ارسال می‌شود. فقط پروکسی‌هایی که تونل CONNECT واقعی و پاسخ مقصد را بدهند زنده حساب می‌شوند. این نسخه فهرست HTTP را بررسی می‌کند؛ SOCKS5 و HTTPS proxy جداگانه هنوز پشتیبانی نمی‌شوند.</div>
 <div class="row"><select id="fn">${[5000,10000,20000].map(v=>`<option value="${v}" ${v==fn?"selected":""}>${v} آی‌پی</option>`).join("")}</select><input id="fm" class="fx" value="${S.fmx}" inputmode="numeric"></div><div class="mu" style="margin-top:-2px">عدد سمت چپ: حداکثر پینگ مجاز (ms)؛ بالاتر از آن در زنده‌ها نمی‌آید</div>
 <div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 نیمه‌امن و ایمن"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
 <input id="fu" placeholder="آدرس لیست دلخواه (اختیاری) https://..."><textarea id="ft" placeholder="یا لیست IP:PORT را اینجا بچسبان (اختیاری)" style="min-height:60px"></textarea><div class="mu">یا فایل لیست (txt):</div><input id="ff" type="file" accept=".txt,text/plain" style="font-size:12px"><div class="row"><button class="btn" id="fs" onclick="runFind()" ${b?"disabled":""}>▶️ دانلود و اسکن</button><button class="btn alt" onclick="S.stop=true">⏹ توقف</button></div>
@@ -216,7 +229,7 @@ const visF=()=>{const m=S.minsec;return[...S.found].filter(f=>m==0||(f.sec&&f.se
 function showFound(){if(fq)return;fq=requestAnimationFrame(()=>{fq=0;const all=S.found,a=visF(),pend=all.filter(f=>!f.sec).length,chk=all.length-pend;
 const b=a.find(f=>f.sec&&f.sec.lv>=Math.max(1,S.minsec)||f.sec&&S.minsec==0&&f.sec.lv>0);
 const best=b?`<div class="best"><b>🏆 بهترین پروکسی (ایمن‌ترین، سپس سریع‌ترین)</b><div class="item" style="flex-wrap:wrap;border:0"><span class="m">${b.h}:${b.p}</span>${secBadge(b.sec)}${msb(b.ms)}<button class="btn sm alt" data-c="http://${b.h}:${b.p}" onclick="cp(this)">📋</button><button class="btn sm" onclick="pickF('${b.h}','${b.p}')">استفاده</button><div class="why">${secWhy(b.sec)}</div></div></div>`:"";
-const cnt=`<div class="mu">${all.length} پورت پاسخ‌گو · ${chk} بررسی‌شدهٔ امنیتی · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (فقط ${S.secN} پینگ برتر بررسی می‌شوند)`:""}</div>`;
+const cnt=`<div class="mu">${all.length} پروکسی تأییدشده · ${chk} بررسی‌شدهٔ امنیتی · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (فقط ${S.secN} پینگ برتر بررسی می‌شوند)`:""}</div>`;
 const empty=!all.length?'<div class="empty">هنوز چیزی پیدا نشده</div>':`<div class="empty">${chk?"هیچ پروکسی با این سطح ایمنی پیدا نشد. «نیمه‌امن» را انتخاب کن یا دوباره اسکن بزن.":"بررسی امنیت هنوز انجام نشده؛ دکمهٔ 🛡 را بزن."}</div>`;
 H("#fres",(all.length?cnt:"")+best+(a.length?a.slice(0,100).map(f=>{const k=f.h+":"+f.p;return`<div class="item" style="flex-wrap:wrap"><span class="m">${k}</span>${f.sec?secBadge(f.sec):""}${msb(f.ms)}<button class="btn sm alt" onclick="stabP('${f.h}','${f.p}')">📊</button><button class="btn sm" onclick="pickF('${f.h}','${f.p}')">استفاده</button>${f.sec?`<div class="why">${secWhy(f.sec)}</div>`:""}${S.pst[k]?`<div class="mu" style="width:100%;direction:ltr;text-align:left">${S.pst[k]}</div>`:""}</div>`}).join(""):empty))})}
 function copyFound(){const a=visF();if(a.length)copy(a.map(f=>f.h+":"+f.p).join("\n"));else toast("نتیجه‌ای مطابق فیلتر نیست")}
@@ -243,15 +256,15 @@ cp(100,`${S.stopC?"متوقف شد · ":""}<b>${ok}</b> از ${done.length} من
 L("SRC",`checked ${done.length}: ok=${ok} bad=${bad} unique=${all.size} dead=${deadNames.join(",")}`);S.busy.chk=0;if(S.tab=="find"){showChk();const b=$("#cb");if(b)b.disabled=false}}
 async function runFind(){if(S.busy.find)return;S.busy.find=1;S.stop=false;S.found=[];S.pst={};for(const k in DLE)delete DLE[k];const n=S.fn=+($("#fn")||{}).value||5000,mx=+($("#fm")||{}).value||400;S.fmx=mx;const fsb=$("#fs");if(fsb)fsb.disabled=true;S.sp=0;S.sm="";fprog(0,`دانلود از ${SRC.length} منبع...`);showFound();const all=new Set;let ok=0,k=0;const pt=($("#ft")||{}).value||"";parseList(pt,all);try{const ff=$("#ff"),f=ff&&ff.files&&ff.files[0];if(f){const tx=await f.text();parseList(tx,all);L("INFO","file "+f.name)}}catch(e){L("ERR","file: "+e.message)}
 const cu=(($("#fu")||{}).value||"").trim(),dd=st.get("dead",null),skip=new Set(dd&&Date.now()-dd.ts<432e5?dd.n:[]),base=SRC.filter(x=>!skip.has(x[0])),srcs=cu?[["custom",[cu,...px(cu)]],...base]:base;if(skip.size)L("INFO","منابع کنارگذاشته: "+skip.size);
-await pool(srcs.slice().sort(()=>Math.random()-.5),8,async([nm,us])=>{const t=await getTxt(us),b=all.size;parseList(t,all);if(all.size>b)ok++;else L("WARN","منبع خالی/ناموفق: "+nm);k++;fprog(Math.round(k/srcs.length*20),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی: ${all.size}`)},()=>S.stop||all.size>=n*2||(k>=16&&!ok));
+await pool(srcs.slice(),4,async([nm,us])=>{const t=await getTxt(us),b=all.size;parseList(t,all);if(all.size>b)ok++;else L("WARN","منبع خالی/ناموفق: "+nm);k++;fprog(Math.round(k/srcs.length*20),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی: ${all.size}`)},()=>S.stop||all.size>=n*2);
 if(S.stop){fprog(0,"متوقف شد");S.busy.find=0;if(S.tab=="find")V.find();return}
 if(all.size)st.set("lc",[...all].slice(0,6000));else{const c=st.get("lc",[]);if(c.length){c.forEach(x=>all.add(x));L("INFO","cache "+c.length);fprog(20,"⚠️ دانلود نشد؛ از آخرین لیست ذخیره‌شده استفاده شد ("+c.length+")")}}
 const items=[...all].sort(()=>Math.random()-.5).slice(0,n);
 if(!items.length){fprog(0,await failWhy());S.busy.find=0;if(S.tab=="find")V.find();return}
 L("INFO","Finder candidates: "+items.length+" IP:PORT from "+ok+" sources");let d=0,fe=0;
-await pool(items,40,async it=>{const[h,p]=it.split(":");const r=await probe(h,p,mx);d++;if(r.r=="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms});showFound()}else if(r.r=="err"&&r.ms<40)fe++;if(d%25==0||d==items.length)fprog(20+Math.round(d/items.length*80),`تست ${d} از ${items.length} · پاسخ‌گو (زیر ${mx}ms): ${S.found.length}`)},()=>S.stop);
+await pool(items,8,async it=>{const[h,p]=it.split(":");const r=await probe(h,p,mx);d++;if(r.r=="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms,verified:true});if(S.found.length%10===0)showFound()}else if(r.r=="err"&&r.ms<40)fe++;if(d%25==0||d==items.length)fprog(20+Math.round(d/items.length*80),`تست ${d} از ${items.length} · پاسخ‌گو (زیر ${mx}ms): ${S.found.length}`)},()=>S.stop);
 const warn=d>=200&&!S.found.length&&fe/d>.9?" ⚠️ تقریباً همه فوراً رد شدند؛ احتمالاً وب‌ویو ترافیک http را مسدود می‌کند (cleartext/mixed-content را در APK فعال کن).":"";
-fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پورت پاسخ‌گو (زیر ${mx}ms) از ${d} تست‌شده${warn}`);L("INFO","Finder done: "+S.found.length+" reachable-port candidates (not confirmed proxies)");if(S.found.length&&!S.stop)await secScan();S.busy.find=0;if(S.tab=="find")V.find()}
+fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پورت پاسخ‌گو (زیر ${mx}ms) از ${d} تست‌شده${warn}`);L("INFO","Finder done: "+S.found.length+" HTTP CONNECT-verified proxies");if(S.found.length&&!S.stop)showFound();S.busy.find=0;if(S.tab=="find")V.find()}
 // ---------- tools
 V.tools=()=>{H("#view",`
 <div class="card"><h3><b>🔬</b>تحلیل IP (پورت و نوع پروکسی)</h3><div class="mu">آی‌پی را از سایت «my ip» کپی کن و اینجا بچسبان (IPv4 یا IPv6، با پورت یا بدون پورت). پورت‌ها را اسکن می‌کند و HTTP / HTTPS / (احتمال) SOCKS5 را مشخص می‌کند.</div><input id="ai" placeholder="1.2.3.4 یا 1.2.3.4:1080 یا [2001:db8::1]"><input id="ap" placeholder="پورت یا بازه (خالی = پورت‌های رایج) مثل 1080,8080 یا 1-1024" inputmode="numeric"><div class="row"><button class="btn" id="ab" onclick="analyze()">🔬 تحلیل</button><button class="btn alt" onclick="S.stopA=true">⏹ توقف</button></div><button class="btn alt full" onclick="$('#ai').value='127.0.0.1';analyze()">📱 اسکن خود گوشی (127.0.0.1)</button><div class="bar"><i id="abar" style="width:0%"></i></div><div id="am" class="mu"></div><div id="ar"></div><div class="note">آی‌پی که سایت my ip نشان می‌دهد معمولاً آی‌پی سرور فیلترشکن است و اغلب پروکسی باز ندارد؛ پس ممکن است چیزی پیدا نشود. اگر فیلترشکن روی خود گوشی است، دکمهٔ «اسکن خود گوشی» را بزن.</div></div>
