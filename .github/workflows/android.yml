@@ -40,6 +40,10 @@ jobs:
         working-directory: mobile
         run: flutter analyze
 
+      - name: Run unit tests
+        working-directory: mobile
+        run: flutter test
+
       - name: Build release APK (ARM64)
         working-directory: mobile
         run: flutter build apk --release --target-platform android-arm64
