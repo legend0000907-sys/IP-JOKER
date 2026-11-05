@@ -29,6 +29,7 @@ jobs:
           cp _wrapper_tmp/android/gradlew.bat mobile/android/gradlew.bat
           mkdir -p mobile/android/gradle/wrapper
           cp _wrapper_tmp/android/gradle/wrapper/* mobile/android/gradle/wrapper/
+          sed -i "s#distributionUrl=.*#distributionUrl=https\\\\://services.gradle.org/distributions/gradle-8.13-bin.zip#" mobile/android/gradle/wrapper/gradle-wrapper.properties
           chmod +x mobile/android/gradlew
           rm -rf _wrapper_tmp
 
