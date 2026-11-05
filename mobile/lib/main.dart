@@ -100,26 +100,29 @@ class _IpJokerHomeState extends State<IpJokerHome> {
 
   Future<Map<String, dynamic>> _probeHttpProxy(String host, int port) async {
     final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 3)
-      ..idleTimeout = const Duration(seconds: 2)
+      ..connectionTimeout = const Duration(seconds: 2)
+      ..idleTimeout = const Duration(seconds: 1)
+      ..maxConnectionsPerHost = 1
       ..findProxy = (_) => 'PROXY $host:$port';
     final watch = Stopwatch()..start();
     try {
+      // HTTPS request forces an HTTP CONNECT tunnel. The platform TLS stack
+      // negotiates the strongest mutually supported version (TLS 1.3/1.2).
       final request = await client
           .getUrl(Uri.parse('https://www.gstatic.com/generate_204'))
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 3));
       request.followRedirects = false;
-      request.headers.set(HttpHeaders.userAgentHeader, 'IP-JOKER-Proxy-Check/1.0');
-      final response = await request.close().timeout(const Duration(seconds: 4));
-      await response.drain<void>().timeout(const Duration(seconds: 2));
+      request.headers.set(HttpHeaders.userAgentHeader, 'IP-JOKER-Proxy-Check/2.0');
+      final response = await request.close().timeout(const Duration(seconds: 3));
       final status = response.statusCode;
+      await response.drain<void>().timeout(const Duration(seconds: 1));
       return {
-        'ok': status >= 200 && status < 400,
+        'ok': status == HttpStatus.noContent || (status >= 200 && status < 400),
         'status': status,
         'ms': watch.elapsedMilliseconds,
-        'message': status >= 200 && status < 400
-            ? 'پروکسی HTTP واقعی پاسخ داد'
-            : 'پاسخ نامعتبر از مقصد: HTTP $status',
+        'message': status == HttpStatus.noContent || (status >= 200 && status < 400)
+            ? 'تونل CONNECT و درخواست HTTPS موفق بود'
+            : 'پاسخ مقصد نامعتبر بود: HTTP $status',
       };
     } catch (error) {
       return {
