@@ -44,7 +44,34 @@ pre{direction:ltr;text-align:left;font:11px/1.6 ui-monospace,Menlo,monospace;whi
 .empty{text-align:center;color:var(--mu);font-size:13px;padding:18px 0}
 .sk{display:inline-block;height:1em;width:7em;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.14),rgba(255,255,255,.05));background-size:200%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200%}}
 .best{border:1px solid var(--ok);background:rgba(34,197,94,.07);border-radius:18px;padding:12px 14px;margin-bottom:12px}.best b{font-size:13px}.why{width:100%;direction:rtl;text-align:right;font-size:11px;color:var(--mu);line-height:1.8}.tiny{font:11px/1.7 ui-monospace,Menlo,monospace;direction:ltr;text-align:left;color:var(--mu)}.toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:in .2s}
-</style></head><body>
+</style><script>
+(function(){
+  let seq=0; const pending={};
+  window.__ipjokerResolve=function(id,result){
+    const p=pending[id]; if(!p)return; delete pending[id];
+    try{p(JSON.parse(result));}catch(e){p({ok:false,message:String(result)});}
+  };
+  function call(action,args,wait){
+    const id=String(++seq);
+    if(!window.IPJokerNative||!window.IPJokerNative.postMessage)
+      return Promise.resolve({ok:false,message:"ارتباط با سرویس اندروید برقرار نیست"});
+    return new Promise(resolve=>{
+      pending[id]=resolve;
+      window.IPJokerNative.postMessage(JSON.stringify({id,action,args:args||{}}));
+      if(wait!==false)setTimeout(()=>{if(pending[id]){delete pending[id];resolve({ok:false,message:"پاسخی از سرویس دریافت نشد"});}},45000);
+      else resolve({ok:true});
+    });
+  }
+  window.IPJokerVPN={
+    connect:(host,port,type)=>call("connect",{host,port,type}),
+    disconnect:()=>call("disconnect",{}),
+    getStatus:()=>call("status",{}),
+    saveProfile:(host,port,type)=>call("save",{host,port,type},false),
+    saveCurrentProfile:(host,port,type)=>call("save",{host,port,type},false),
+    getSavedProfiles:()=>"[]"
+  };
+})();
+</script></head><body>
 <header><div class="logo">🃏</div><h1>IP JOKER<small>پروکسی‌یاب · DNS · ابزار شبکه</small></h1><div class="dot" id="net"><i></i><span>آنلاین</span></div></header>
 <div id="view"></div><nav id="nav"></nav>
 <script>
@@ -99,9 +126,9 @@ function rd(){const h=$("#ph"),p=$("#pp");if(h)S.proxy.host=h.value.trim();if(p)
 // اتصال واقعی فقط از طریق پل بومی APK امکان‌پذیر است؛ HTML معمولی اجازهٔ تغییر پروکسی سیستم را ندارد.
 function nativeProxyBridge(){return window.IPJokerVPN||window.Capacitor?.Plugins?.IPJokerVPN||window.Capacitor?.Plugins?.ProxyVPN||null}
 function syncNativeSaved(){try{const b=nativeProxyBridge();if(!b||!b.getSavedProfiles)return;const a=JSON.parse(b.getSavedProfiles()||"[]");if(Array.isArray(a)){const m=new Map;[...a,...S.saved].forEach(x=>{if(x&&x.host&&x.port)m.set(x.host+":"+x.port+":"+(x.type||"HTTP"),{host:String(x.host),port:String(x.port),type:x.type||"HTTP"})});S.saved=[...m.values()];st.set("saved",S.saved)}}catch(e){L("WARN","native saved profiles: "+e.message)}}
-async function connectProxy(){const p=rd();if(!p.host||!p.port)return toast("اول IP و پورت را وارد کن");const b=nativeProxyBridge();if(!b||typeof b.connect!=="function"){T("#connStatus","❌ پل بومی اتصال در این APK وجود ندارد.");return toast("سرویس بومی در دسترس نیست")}saveP(true);const btn=$("#connectBtn");if(btn)btn.disabled=true;T("#connStatus","در حال بررسی موتور اتصال...");try{const raw=b.connect(p.host,String(+p.port),p.type);let r;try{r=JSON.parse(raw)}catch(_){r={ok:false,message:String(raw)}}T("#connStatus",r.message||"پاسخ سرویس دریافت شد");if(r.ok)toast("درخواست اتصال ارسال شد");else toast("موتور VPN هنوز آماده نیست")}catch(e){T("#connStatus","❌ اتصال ناموفق: "+(e?.message||e));}finally{if(btn)btn.disabled=false}}
-async function disconnectProxy(){const b=nativeProxyBridge();if(!b||typeof b.disconnect!=="function"){T("#connStatus","❌ افزونهٔ VPN بومی وجود ندارد؛ قطع اتصال از داخل HTML ممکن نیست.");return toast("افزونهٔ VPN نصب نیست")}
-const btn=$("#disconnectBtn");if(btn)btn.disabled=true;try{const r=await b.disconnect();T("#connStatus",r?.message||"اتصال قطع شد");toast("درخواست قطع اتصال ارسال شد")}catch(e){T("#connStatus","❌ قطع اتصال ناموفق: "+(e?.message||e))}finally{if(btn)btn.disabled=false}}
+async function connectProxy(){const p=rd();if(!p.host||!p.port)return toast("اول IP و پورت را وارد کن");const b=nativeProxyBridge();if(!b||typeof b.connect!=="function"){T("#connStatus","❌ پل بومی اتصال در این APK وجود ندارد.");return toast("سرویس بومی در دسترس نیست")}saveP(true);const btn=$("#connectBtn");if(btn)btn.disabled=true;T("#connStatus","در حال راه‌اندازی VPN واقعی...");try{const r=await b.connect(p.host,String(+p.port),p.type);T("#connStatus",r.message||"پاسخ سرویس دریافت شد");if(r.ok)toast("VPN متصل شد ✓");else toast("اتصال ناموفق بود")}catch(e){T("#connStatus","❌ اتصال ناموفق: "+(e?.message||e));}finally{if(btn)btn.disabled=false}}
+async function disconnectProxy(){const b=nativeProxyBridge();if(!b||typeof b.disconnect!=="function"){T("#connStatus","❌ ارتباط بومی VPN در دسترس نیست.");return toast("سرویس VPN در دسترس نیست")}
+const btn=$("#disconnectBtn");if(btn)btn.disabled=true;try{const r=await b.disconnect();T("#connStatus",r?.message||"اتصال قطع شد");toast(r?.ok?"اتصال قطع شد ✓":"قطع اتصال ناموفق بود")}catch(e){T("#connStatus","❌ قطع اتصال ناموفق: "+(e?.message||e))}finally{if(btn)btn.disabled=false}}
 async function testProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');$("#tb").disabled=true;H("#pr",'<span class="sk"></span>');const rs=[];for(let i=0;i<3;i++){rs.push(await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"));if(S.tab!="dash")break;await sleep(150)}
 const ok=rs.filter(x=>x.r=="ok"),er=rs.filter(x=>x.r=="err"),av=a=>Math.round(a.reduce((s,x)=>s+x.ms,0)/a.length);let m;
 if(ok.length)m=`<span class="g">✅ پاسخ HTTP دریافت شد (پروکسی بودن تأیید نشده) است · ${av(ok)}ms · ${ok.length} از ۳</span>`;else if(er.length)m=`<span class="a">⚠️ پاسخ قابل‌خواندن دریافت نشد؛ ممکن است پروتکل/فایروال مانع باشد (${av(er)}ms). اگر SOCKS5 است، مرورگر نمی‌تواند تأیید کند.</span>`;else m='<span class="r">❌ پاسخی نیامد (timeout)</span>';
