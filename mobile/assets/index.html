@@ -68,7 +68,8 @@ pre{direction:ltr;text-align:left;font:11px/1.6 ui-monospace,Menlo,monospace;whi
     getStatus:()=>call("status",{}),
     saveProfile:(host,port,type)=>call("save",{host,port,type},false),
     saveCurrentProfile:(host,port,type)=>call("save",{host,port,type},false),
-    getSavedProfiles:()=>"[]",\n    fetchText:url=>call("fetchText",{url}),\n    probeProxy:(host,port,type)=>call("probeProxy",{host,port,type})
+    getSavedProfiles:()=>"[]",
+    fetchText:url=>call("fetchText",{url}),\n    probeProxy:(host,port,type)=>call("probeProxy",{host,port,type})
   };
 })();
 </script></head><body>
