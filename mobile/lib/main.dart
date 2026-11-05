@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:sing_box/sing_box.dart';
 import 'package:ip_joker/proxy_link.dart';
@@ -6,38 +9,23 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Object? startupError;
-  try {
-    await SingBox.instance.initialize(const SingBoxOptions(
-      logMaxLines: 2000,
-      android: SingBoxAndroidOptions(
-        notificationTitle: 'IP JOKER',
-        showTrafficInNotification: true,
-        stopActionTitle: 'قطع اتصال',
-      ),
-    ));
-  } catch (error) {
-    startupError = error;
-  }
-  runApp(IpJokerApp(startupError: startupError));
+  runApp(const IpJokerApp());
 }
 
 class IpJokerApp extends StatelessWidget {
-  const IpJokerApp({super.key, this.startupError});
-  final Object? startupError;
+  const IpJokerApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'IP JOKER',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFe53935)),
-        home: IpJokerHome(startupError: startupError),
+        home: const IpJokerHome(),
       );
 }
 
 class IpJokerHome extends StatefulWidget {
-  const IpJokerHome({super.key, this.startupError});
-  final Object? startupError;
+  const IpJokerHome({super.key});
 
   @override
   State<IpJokerHome> createState() => _IpJokerHomeState();
@@ -46,6 +34,9 @@ class IpJokerHome extends StatefulWidget {
 class _IpJokerHomeState extends State<IpJokerHome> {
   late final WebViewController controller;
   bool ready = false;
+  bool nativeReady = false;
+  Object? startupError;
+  Future<void> _vpnQueue = Future<void>.value();
 
   @override
   void initState() {
@@ -59,31 +50,115 @@ class _IpJokerHomeState extends State<IpJokerHome> {
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) {
           if (mounted) setState(() => ready = true);
-          if (widget.startupError != null) {
-            _showStartupError();
-          }
+          _showStartupError();
         },
         onWebResourceError: (error) {
           debugPrint('IP JOKER WebView: ${error.description}');
         },
       ))
       ..loadFlutterAsset('assets/index.html');
+    _initializeNative();
+  }
+
+  Future<void> _initializeNative() async {
+    try {
+      await SingBox.instance.initialize(const SingBoxOptions(
+        logMaxLines: 300,
+        android: SingBoxAndroidOptions(
+          notificationTitle: 'IP JOKER',
+          showTrafficInNotification: true,
+          stopActionTitle: 'قطع اتصال',
+        ),
+      ));
+      nativeReady = true;
+    } catch (error) {
+      startupError = error;
+      debugPrint('IP JOKER sing-box init failed: $error');
+    }
+    if (mounted) setState(() {});
+    _showStartupError();
   }
 
   Future<void> _showStartupError() async {
-    final error = widget.startupError;
-    if (error == null || !mounted) return;
+    if (!ready || startupError == null) return;
     await controller.runJavaScript(
-      'window.__ipjokerStartupError && window.__ipjokerStartupError(${jsonEncode(error.toString())});',
+      'window.__ipjokerStartupError && window.__ipjokerStartupError(${jsonEncode(startupError.toString())});',
     );
   }
 
   Future<void> _reply(String id, Map<String, dynamic> result) async {
     final idLiteral = jsonEncode(id);
     final resultLiteral = jsonEncode(jsonEncode(result));
-    await controller.runJavaScript(
-      'window.__ipjokerResolve && window.__ipjokerResolve($idLiteral, $resultLiteral);',
-    );
+    try {
+      await controller.runJavaScript(
+        'window.__ipjokerResolve && window.__ipjokerResolve($idLiteral, $resultLiteral);',
+      );
+    } catch (error) {
+      debugPrint('IP JOKER reply failed: $error');
+    }
+  }
+
+  Future<Map<String, dynamic>> _probeHttpProxy(String host, int port) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 4)
+      ..idleTimeout = const Duration(seconds: 2)
+      ..findProxy = (_) => 'PROXY $host:$port';
+    final watch = Stopwatch()..start();
+    try {
+      final request = await client
+          .getUrl(Uri.parse('https://www.gstatic.com/generate_204'))
+          .timeout(const Duration(seconds: 6));
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.userAgentHeader, 'IP-JOKER-Proxy-Check/1.0');
+      final response = await request.close().timeout(const Duration(seconds: 6));
+      await response.drain<void>().timeout(const Duration(seconds: 2));
+      final status = response.statusCode;
+      return {
+        'ok': status >= 200 && status < 400,
+        'status': status,
+        'ms': watch.elapsedMilliseconds,
+        'message': status >= 200 && status < 400
+            ? 'پروکسی HTTP واقعی پاسخ داد'
+            : 'پاسخ نامعتبر از مقصد: HTTP $status',
+      };
+    } catch (error) {
+      return {
+        'ok': false,
+        'ms': watch.elapsedMilliseconds,
+        'message': error.toString(),
+      };
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchText(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+      throw const FormatException('آدرس منبع معتبر نیست');
+    }
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 5)
+      ..idleTimeout = const Duration(seconds: 2)
+      ..userAgent = 'IP-JOKER/1.0';
+    try {
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 6));
+      request.followRedirects = true;
+      final response = await request.close().timeout(const Duration(seconds: 7));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return {'ok': false, 'status': response.statusCode, 'text': ''};
+      }
+      if (response.contentLength > 2 * 1024 * 1024) {
+        return {'ok': false, 'status': response.statusCode, 'text': '', 'message': 'فایل منبع بیش از حد بزرگ است'};
+      }
+      final text = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 7));
+      return {'ok': true, 'status': response.statusCode, 'text': text};
+    } finally {
+      client.close(force: true);
+    }
   }
 
   Future<void> _handle(String raw) async {
@@ -95,13 +170,34 @@ class _IpJokerHomeState extends State<IpJokerHome> {
       final args = (data['args'] as Map?)?.cast<String, dynamic>() ?? {};
 
       switch (action) {
+        case 'fetchText':
+          final result = await _fetchText((args['url'] ?? '').toString());
+          await _reply(id, result);
+          break;
+
+        case 'probeProxy':
+          final host = (args['host'] ?? '').toString().trim();
+          final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
+          final type = (args['type'] ?? 'HTTP').toString().toUpperCase();
+          if (type != 'HTTP') {
+            await _reply(id, {
+              'ok': false,
+              'message': 'تست زندهٔ خودکار فعلاً فقط برای پروکسی HTTP پشتیبانی می‌شود',
+            });
+          } else if (host.isEmpty || port < 1 || port > 65535) {
+            await _reply(id, {'ok': false, 'message': 'IP یا پورت نامعتبر است'});
+          } else {
+            await _reply(id, await _probeHttpProxy(host, port));
+          }
+          break;
+
         case 'connect':
           final host = (args['host'] ?? '').toString();
           final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
           final type = (args['type'] ?? 'HTTP').toString();
           final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
-          await SingBox.instance.connect(proxyLink);
+          await _serializeVpn(() => SingBox.instance.connect(proxyLink));
           await _reply(id, {
             'ok': true,
             'connected': SingBox.instance.status.isActive,
@@ -110,7 +206,7 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           break;
 
         case 'disconnect':
-          await SingBox.instance.disconnect();
+          await _serializeVpn(() => SingBox.instance.disconnect());
           await _reply(id, {
             'ok': true,
             'connected': false,
@@ -128,8 +224,7 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           break;
 
         case 'save':
-          // The original HTML stores saved profiles in persistent WebView localStorage.
-          await _reply(id, {'ok': true, 'message': 'پروفایل ذخیره شد'});
+          await _reply(id, {'ok': true, 'message': 'پروفایل در حافظهٔ برنامه ذخیره شد'});
           break;
 
         default:
@@ -138,8 +233,15 @@ class _IpJokerHomeState extends State<IpJokerHome> {
     } on SingBoxException catch (error) {
       await _reply(id, {'ok': false, 'message': error.message});
     } catch (error) {
+      debugPrint('IP JOKER action error: $error');
       await _reply(id, {'ok': false, 'message': error.toString()});
     }
+  }
+
+  Future<void> _serializeVpn(Future<void> Function() operation) {
+    final next = _vpnQueue.then((_) => operation());
+    _vpnQueue = next.catchError((Object _) {});
+    return next;
   }
 
   @override
@@ -148,7 +250,8 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           child: Stack(
             children: [
               WebViewWidget(controller: controller),
-              if (!ready) const Center(child: CircularProgressIndicator()),
+              if (!ready || !nativeReady && startupError == null)
+                const Center(child: CircularProgressIndicator()),
             ],
           ),
         ),
