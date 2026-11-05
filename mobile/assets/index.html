@@ -10,7 +10,7 @@
 html,body{height:100%;margin:0;overscroll-behavior:none;touch-action:manipulation}
 body{height:100vh;height:100dvh;color:var(--fg);font-family:Vazirmatn,Tahoma,system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;
 background:radial-gradient(120% 60% at 50% -10%,rgba(var(--rgb),.28),transparent 60%),radial-gradient(80% 40% at 100% 100%,rgba(var(--rgb),.12),transparent 60%),var(--bg)}
-header{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px}
+\n.top-brand{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(7px + env(safe-area-inset-top)) 16px 4px;color:var(--mu);font-family:Arial,sans-serif;font-size:11px;letter-spacing:.35px}.top-brand .tel{color:var(--ac2);font-weight:700;font-size:12px}.top-brand .dev{font-size:10px;opacity:.85}\nheader{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px}
 .logo{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;font-size:22px;box-shadow:0 6px 20px rgba(var(--rgb),.45)}
 header h1{margin:0;font-size:18px;letter-spacing:.5px;flex:1}header h1 small{display:block;font-size:11px;color:var(--mu);font-weight:normal;letter-spacing:0}
 .dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mu);background:rgba(255,255,255,.05);padding:5px 10px;border-radius:20px}.dot i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.off i{background:var(--bad);box-shadow:0 0 8px var(--bad)}
@@ -72,7 +72,7 @@ pre{direction:ltr;text-align:left;font:11px/1.6 ui-monospace,Menlo,monospace;whi
   };
 })();
 </script></head><body>
-<header><div class="logo">🃏</div><h1>IP JOKER<small>پروکسی‌یاب · DNS · ابزار شبکه</small></h1><div class="dot" id="net"><i></i><span>آنلاین</span></div></header>
+<div class="top-brand"><span class="tel">tel : IP_JOKER</span><span class="dev">Developer: Armia &amp; Amir Abbas</span></div>\n<header><div class="logo">🃏</div><h1>IP JOKER<small>پروکسی‌یاب · DNS · ابزار شبکه</small></h1><div class="dot" id="net"><i></i><span>آنلاین</span></div></header>
 <div id="view"></div><nav id="nav"></nav>
 <script>
 const $=s=>document.querySelector(s),H=(s,h)=>{const e=$(s);if(e)e.innerHTML=h;return e},T=(s,t)=>{const e=$(s);if(e)e.textContent=t};
