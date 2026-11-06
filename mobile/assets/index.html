@@ -170,10 +170,10 @@ try{const d=JSON.parse((await nget("https://api.ipapi.is/?q="+ip,8000)).text);if
 r={abuser:!!d.is_abuser,tor:!!d.is_tor,vpn:!!d.is_vpn,crawler:!!d.is_crawler,bogon:!!d.is_bogon,dc:!!d.is_datacenter,sc:Math.max(sc(d.company&&d.company.abuser_score),sc(d.asn&&d.asn.abuser_score)),org:(d.company&&d.company.name)||(d.asn&&d.asn.org)||"",cc:(d.location&&d.location.country_code)||""};S.repFail=0}
 catch(e){L("SEC","rep "+ip+" ✗ "+(e.message||e));if(++S.repFail>=5){S.repOff=Date.now()+60000;S.repFail=0;L("WARN","سرویس اعتبار IP موقتاً کنار گذاشته شد (۶۰ثانیه)")}}
 if(r)S.rep[ip]=r;return r}
-function scoreSec(o){const{h,p,ms,tls,rep}=o,why=[],bad=[];if(!isPub4(h))return{s:0,lv:0,why,bad:["آی‌پی خصوصی/رزرو/نامعتبر"]};let s=50,cap=100;
+function scoreSec(o){const{h,p,ms,tls,rep}=o,why=[],bad=[];if(!isPub4(h))return{s:0,lv:0,why,bad:["آی‌پی خصوصی/رزرو/نامعتبر"]};let s=50,cap=70;
 if(BADP.has(+p)){s-=40;bad.push("پورت حساس "+p+" (پروکسی نیست)")}else if(STDP.has(+p)){s+=5;why.push("پورت استاندارد")}else{s-=5;why.push("پورت غیرمعمول")}
-if(tls){s+=20;why.push("TLS معتبر روی همین پورت")}else why.push("بدون TLS تأییدشده");
-if(!rep){cap=70;why.push("اعتبار IP بررسی نشد (حداکثر نیمه‌امن)")}else{
+if(tls){s+=20;why.push("TLS معتبر روی همین پورت")}else why.push("رمزنگاری تا خود پروکسی تأیید نشده؛ امتیاز حداکثر ۷۰");
+if(!rep){why.push("اعتبار IP بررسی نشد (دادهٔ شهرت در دسترس نیست)")}else{
 if(rep.bogon){s-=50;bad.push("bogon")}if(rep.abuser){s-=35;bad.push("IP گزارش‌شده برای سوءاستفاده")}if(rep.tor){s-=30;bad.push("خروجی Tor")}
 if(rep.crawler){s-=10;why.push("کرالر/اسکنر")}if(rep.sc>.05){s-=25;bad.push("امتیاز سوءاستفاده بالا")}else if(rep.sc>.01){s-=10;why.push("امتیاز سوءاستفاده متوسط")}
 if(!rep.abuser&&!rep.tor&&!rep.crawler&&!rep.bogon&&rep.sc<=.01){s+=20;why.push("سابقهٔ تمیز")}}
