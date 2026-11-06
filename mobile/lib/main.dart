@@ -1,3 +1,31 @@
+class _SocketReader {
+  _SocketReader(Socket socket) : _iterator = StreamIterator<List<int>>(socket);
+  final StreamIterator<List<int>> _iterator;
+  final List<int> _buffer = [];
+  Future<List<int>> readExact(int count) async {
+    while (_buffer.length < count) {
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed the connection unexpectedly');
+      _buffer.addAll(_iterator.current);
+    }
+    final result = _buffer.sublist(0, count);
+    _buffer.removeRange(0, count);
+    return result;
+  }
+  Future<List<int>> readHeader() async {
+    while (true) {
+      for (var i = 0; i <= _buffer.length - 4; i++) {
+        if (_buffer[i] == 13 && _buffer[i+1] == 10 && _buffer[i+2] == 13 && _buffer[i+3] == 10) {
+          final result = _buffer.sublist(0, i+4);
+          _buffer.removeRange(0, i+4);
+          return result;
+        }
+      }
+      if (_buffer.length > 16384) throw const FormatException('Proxy response headers exceed 16 KiB');
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed before response headers completed');
+      _buffer.addAll(_iterator.current);
+    }
+  }
+}
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -98,43 +126,51 @@ class _IpJokerHomeState extends State<IpJokerHome> {
     }
   }
 
-  Future<Map<String, dynamic>> _probeHttpProxy(String host, int port) async {
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 2)
-      ..idleTimeout = const Duration(seconds: 1)
-      ..maxConnectionsPerHost = 1
-      ..findProxy = (_) => 'PROXY $host:$port';
+  Future<Map<String, dynamic>> _probeProxy(String host, int port, String type) async {
     final watch = Stopwatch()..start();
+    Socket? socket;
     try {
-      // HTTPS request forces an HTTP CONNECT tunnel. The platform TLS stack
-      // negotiates the strongest mutually supported version (TLS 1.3/1.2).
-      final request = await client
-          .getUrl(Uri.parse('https://www.gstatic.com/generate_204'))
-          .timeout(const Duration(seconds: 3));
-      request.followRedirects = false;
-      request.headers.set(HttpHeaders.userAgentHeader, 'IP-JOKER-Proxy-Check/2.0');
-      final response = await request.close().timeout(const Duration(seconds: 3));
-      final status = response.statusCode;
-      await response.drain<void>().timeout(const Duration(seconds: 1));
-      return {
-        'ok': status == HttpStatus.noContent || (status >= 200 && status < 400),
-        'status': status,
-        'ms': watch.elapsedMilliseconds,
-        'message': status == HttpStatus.noContent || (status >= 200 && status < 400)
-            ? 'تونل CONNECT و درخواست HTTPS موفق بود'
-            : 'پاسخ مقصد نامعتبر بود: HTTP $status',
-      };
+      const targetHost = 'www.gstatic.com';
+      const targetPort = 443;
+      final kind = type.toUpperCase();
+      if (kind == 'SOCKS5') {
+        socket = await Socket.connect(host, port, timeout: const Duration(seconds: 4));
+        final reader = _SocketReader(socket);
+        socket.add([0x05, 0x01, 0x00]);
+        await socket.flush();
+        final greeting = await reader.readExact(2).timeout(const Duration(seconds: 3));
+        if (greeting[0] != 0x05 || greeting[1] != 0x00) throw const FormatException('SOCKS5 no-auth negotiation failed');
+        final domain = utf8.encode(targetHost);
+        socket.add([0x05, 0x01, 0x00, 0x03, domain.length, ...domain, 0x01, 0xBB]);
+        await socket.flush();
+        final head = await reader.readExact(4).timeout(const Duration(seconds: 4));
+        if (head[0] != 0x05 || head[1] != 0x00) throw FormatException('SOCKS5 CONNECT rejected (code ${head[1]})');
+        final atyp = head[3];
+        final addrLen = atyp == 0x01 ? 4 : atyp == 0x04 ? 16 : atyp == 0x03 ? (await reader.readExact(1)).first : -1;
+        if (addrLen < 0) throw const FormatException('Invalid SOCKS5 address type');
+        await reader.readExact(addrLen + 2).timeout(const Duration(seconds: 3));
+      } else if (kind == 'HTTP' || kind == 'HTTPS') {
+        if (kind == 'HTTPS') {
+          socket = await SecureSocket.connect(host, port, timeout: const Duration(seconds: 5), supportedProtocols: const ['http/1.1']);
+        } else {
+          socket = await Socket.connect(host, port, timeout: const Duration(seconds: 4));
+        }
+        final reader = _SocketReader(socket);
+        socket.add(utf8.encode('CONNECT $targetHost:$targetPort HTTP/1.1\r\nHost: $targetHost:$targetPort\r\nUser-Agent: IP-JOKER-Proxy-Check/3.0\r\nProxy-Connection: close\r\n\r\n'));
+        await socket.flush();
+        final header = utf8.decode(await reader.readHeader().timeout(const Duration(seconds: 5)), allowMalformed: true);
+        final firstLine = header.split('\r\n').first;
+        if (!RegExp(r'^HTTP/1\.[01] 200(?: |$)').hasMatch(firstLine)) throw FormatException('CONNECT rejected: $firstLine');
+      } else {
+        throw FormatException('Unsupported proxy type: $type');
+      }
+      return {'ok': true, 'status': 200, 'ms': watch.elapsedMilliseconds, 'message': kind + ' proxy tunnel handshake succeeded'};
     } catch (error) {
-      return {
-        'ok': false,
-        'ms': watch.elapsedMilliseconds,
-        'message': error.toString(),
-      };
+      return {'ok': false, 'ms': watch.elapsedMilliseconds, 'message': error.toString()};
     } finally {
-      client.close(force: true);
+      socket?.destroy();
     }
   }
-
   Future<Map<String, dynamic>> _fetchText(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
@@ -182,15 +218,12 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           final host = (args['host'] ?? '').toString().trim();
           final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
           final type = (args['type'] ?? 'HTTP').toString().toUpperCase();
-          if (type != 'HTTP') {
-            await _reply(id, {
-              'ok': false,
-              'message': 'تست زندهٔ خودکار فعلاً فقط برای پروکسی HTTP پشتیبانی می‌شود',
-            });
+          if (!const ['HTTP', 'HTTPS', 'SOCKS5'].contains(type)) {
+            await _reply(id, {'ok': false, 'message': 'نوع پروکسی پشتیبانی نمی‌شود'});
           } else if (host.isEmpty || port < 1 || port > 65535) {
             await _reply(id, {'ok': false, 'message': 'IP یا پورت نامعتبر است'});
           } else {
-            await _reply(id, await _probeHttpProxy(host, port));
+            await _reply(id, await _probeProxy(host, port, type));
           }
           break;
 
