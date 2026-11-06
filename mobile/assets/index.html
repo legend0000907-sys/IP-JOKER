@@ -231,8 +231,8 @@ async function getTxt(us){
     }
   });
 }
-V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی کاندیداهای HTTP</h3>
-<div class="mu">منابع عمومی را موازی دانلود می‌کند و کاندیداهای یکتا را با چندین تست هم‌زمان بررسی می‌کند. زنده یعنی تونل HTTP CONNECT برقرار شود و مقصد HTTPS پاسخ معتبر بدهد. مقصد با TLS استاندارد سیستم (TLS 1.2/1.3 در صورت پشتیبانی اندروید) بررسی می‌شود؛ «TLS 3.14» استانداردی وجود ندارد. این اسکنر فعلاً پروکسی HTTP را می‌سنجد، نه SOCKS5 یا HTTPS-proxy.</div>
+V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی HTTP / HTTPS / SOCKS5</h3>
+<div class="mu">منابع عمومی را موازی دانلود می‌کند و کاندیداهای یکتا را با چندین تست هم‌زمان بررسی می‌کند. زنده یعنی تونل HTTP CONNECT برقرار شود و مقصد HTTPS پاسخ معتبر بدهد. مقصد با TLS استاندارد سیستم (TLS 1.2/1.3 در صورت پشتیبانی اندروید) بررسی می‌شود؛ «TLS 3.14» استانداردی وجود ندارد. اسکنر نوع هر منبع را حفظ می‌کند و HTTP، HTTPS-proxy و SOCKS5 را جداگانه آزمایش می‌کند.</div>
 <div class="row"><select id="fn">${[5000,10000,20000].map(v=>`<option value="${v}" ${v==fn?"selected":""}>${v} آی‌پی</option>`).join("")}</select><input id="fm" class="fx" value="${S.fmx}" inputmode="numeric"></div><div class="mu" style="margin-top:-2px">عدد سمت چپ: حداکثر پینگ مجاز (ms)؛ بالاتر از آن در زنده‌ها نمی‌آید</div>
 <div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 نیمه‌امن و ایمن"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
 <input id="fu" placeholder="آدرس لیست دلخواه (اختیاری) https://..."><textarea id="ft" placeholder="یا لیست IP:PORT را اینجا بچسبان (اختیاری)" style="min-height:60px"></textarea><div class="mu">یا فایل لیست (txt):</div><input id="ff" type="file" accept=".txt,text/plain" style="font-size:12px"><div class="row"><button class="btn" id="fs" onclick="runFind()" ${b?"disabled":""}>▶️ دانلود و اسکن</button><button class="btn alt" onclick="S.stop=true">⏹ توقف</button></div>
@@ -246,11 +246,11 @@ const b=a.find(f=>f.sec&&f.sec.lv>=Math.max(1,S.minsec)||f.sec&&S.minsec==0&&f.s
 const best=b?`<div class="best"><b>🏆 بهترین پروکسی (ایمن‌ترین، سپس سریع‌ترین)</b><div class="item" style="flex-wrap:wrap;border:0"><span class="m">${b.h}:${b.p}</span>${secBadge(b.sec)}${msb(b.ms)}<button class="btn sm alt" data-c="http://${b.h}:${b.p}" onclick="cp(this)">📋</button><button class="btn sm" onclick="pickF('${b.h}','${b.p}')">استفاده</button><div class="why">${secWhy(b.sec)}</div></div></div>`:"";
 const cnt=`<div class="mu">${all.length} پروکسی تأییدشده · ${chk} بررسی‌شدهٔ امنیتی · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (فقط ${S.secN} پینگ برتر بررسی می‌شوند)`:""}</div>`;
 const empty=!all.length?'<div class="empty">هنوز چیزی پیدا نشده</div>':`<div class="empty">${chk?"هیچ پروکسی با این سطح ایمنی پیدا نشد. «نیمه‌امن» را انتخاب کن یا دوباره اسکن بزن.":"بررسی امنیت هنوز انجام نشده؛ دکمهٔ 🛡 را بزن."}</div>`;
-H("#fres",(all.length?cnt:"")+best+(a.length?a.slice(0,100).map(f=>{const k=f.h+":"+f.p;return`<div class="item" style="flex-wrap:wrap"><span class="m">${k}</span>${f.sec?secBadge(f.sec):""}${msb(f.ms)}<button class="btn sm alt" onclick="stabP('${f.h}','${f.p}')">📊</button><button class="btn sm" onclick="pickF('${f.h}','${f.p}')">استفاده</button>${f.sec?`<div class="why">${secWhy(f.sec)}</div>`:""}${S.pst[k]?`<div class="mu" style="width:100%;direction:ltr;text-align:left">${S.pst[k]}</div>`:""}</div>`}).join(""):empty))})}
-function copyFound(){const a=visF();if(a.length)copy(a.map(f=>f.h+":"+f.p).join("\n"));else toast("نتیجه‌ای مطابق فیلتر نیست")}
-function pickF(h,p){S.proxy={host:h,port:p,type:"HTTP"};st.set("proxy",S.proxy);go("dash")}
+H("#fres",(all.length?cnt:"")+best+(a.length?a.slice(0,100).map(f=>{const k=f.h+":"+f.p;return`<div class="item" style="flex-wrap:wrap"><span class="badge">${esc(f.type||"HTTP")}</span><span class="m">${k}</span>${f.sec?secBadge(f.sec):""}${msb(f.ms)}<button class="btn sm alt" onclick="stabP('${f.h}','${f.p}')">📊</button><button class="btn sm" onclick="pickF('${f.h}','${f.p}')">استفاده</button>${f.sec?`<div class="why">${secWhy(f.sec)}</div>`:""}${S.pst[k]?`<div class="mu" style="width:100%;direction:ltr;text-align:left">${S.pst[k]}</div>`:""}</div>`}).join(""):empty))})}
+function copyFound(){const a=visF();if(a.length)copy(a.map(f=>String(f.type||"HTTP").toLowerCase()+"://"+f.h+":"+f.p).join("\n"));else toast("نتیجه‌ای مطابق فیلتر نیست")}
+function pickF(h,p,type="HTTP"){S.proxy={host:h,port:p,type};st.set("proxy",S.proxy);go("dash")}
 function fprog(p,m){S.fp=p;S.fm=m;if(S.tab=="find"){const b=$("#fb");if(b)b.style.width=p+"%";T("#fmsg",m)}}
-async function stabP(h,p,N=10){const k=h+":"+p;if(S.busy["p"+k])return;S.busy["p"+k]=1;const ms=[];let lost=0;for(let i=0;i<N;i++){S.pst[k]=`⏳ ${i+1}/${N}`;showFound();const r=await probe(h,p,S.fmx||400);r.r=="ok"?ms.push(r.ms):lost++;await sleep(150)}const x=stats(ms,lost,N);S.pst[k]=`<span class="${x.loss>20?"r":x.loss?"a":"g"}">${x.loss<=20?"✅":"❌"} min ${x.min} · avg ${x.avg} · max ${x.max}ms · ±${x.jit} · loss ${x.loss}%</span>`;S.busy["p"+k]=0;showFound()}
+async function stabP(h,p,N=10){const k=h+":"+p;if(S.busy["p"+k])return;S.busy["p"+k]=1;const ms=[];let lost=0;for(let i=0;i<N;i++){S.pst[k]=`⏳ ${i+1}/${N}`;showFound();const f=S.found.find(x=>x.h==h&&x.p==p),r=await probe(h,p,S.fmx||400,f&&f.type||"HTTP");r.r=="ok"?ms.push(r.ms):lost++;await sleep(150)}const x=stats(ms,lost,N);S.pst[k]=`<span class="${x.loss>20?"r":x.loss?"a":"g"}">${x.loss<=20?"✅":"❌"} min ${x.min} · avg ${x.avg} · max ${x.max}ms · ±${x.jit} · loss ${x.loss}%</span>`;S.busy["p"+k]=0;showFound()}
 async function stabTopP(){const a=visF().slice(0,10);if(!a.length)return toast("نتیجه‌ای مطابق فیلتر نیست");await pool(a,5,f=>stabP(f.h,f.p),()=>false)}
 
 async function secScan(manual){if(S.busy.sec)return;const q=S.found.filter(f=>!f.sec).sort((a,b)=>a.ms-b.ms).slice(0,S.secN);if(!q.length){if(manual)toast("چیزی برای بررسی نیست");return}
@@ -264,7 +264,7 @@ async function checkSrc(){if(S.busy.chk||S.busy.find)return toast("یک عملی
 const cp=(p,m)=>{S.cp=p;S.cm=m;if(S.tab=="find"){const b=$("#cbar");if(b)b.style.width=p+"%";H("#cmsg",m)}};
 if(!net){cp(0,'<span class="r">❌ اینترنت نیست؛ بدون اینترنت نمی‌شود منابع را سنجید (منابع خراب علامت نمی‌خورند).</span>');S.busy.chk=0;return}
 const all=new Set;let d=0;const bt=$("#cb");if(bt)bt.disabled=true;cp(0,"در حال بررسی...");
-await pool(SRC.map((_,i)=>i),6,async i=>{const t=await getTxt(SRC[i][1]),set=parseList(t);set.forEach(x=>all.add(x));S.chk[i]={n:set.size,len:t.length};d++;cp(Math.round(d/SRC.length*100),`${d}/${SRC.length} · IP یکتا تا اینجا: ${all.size}`);if(S.tab=="find")showChk()},()=>S.stopC);
+await pool(SRC.map((_,i)=>i),6,async i=>{const t=await getTxt(SRC[i][1]),set=parseList(t,new Set,SRC[i][2]);set.forEach(x=>all.add(x));S.chk[i]={n:set.size,len:t.length};d++;cp(Math.round(d/SRC.length*100),`${d}/${SRC.length} · IP یکتا تا اینجا: ${all.size}`);if(S.tab=="find")showChk()},()=>S.stopC);
 const done=S.chk.filter(Boolean),ok=done.filter(x=>x.n>0).length,bad=done.length-ok;
 const deadNames=S.chk.map((x,i)=>x&&x.n==0?srcName(i):null).filter(Boolean);if(!S.stopC&&ok>=3)st.set("dead",{ts:Date.now(),n:deadNames});
 cp(100,`${S.stopC?"متوقف شد · ":""}<b>${ok}</b> از ${done.length} منبع IP معتبر دارند · ${bad} خالی/خراب · مجموع ${all.size} IP:PORT یکتا`+(ok<3?" · ⚠️ تعداد منابع فعال خیلی کم است؛ احتمالاً شبکه/فیلتر مشکل دارد، پس منبعی کنار گذاشته نشد":""));
@@ -278,17 +278,17 @@ async function runFind(){
  const fsb=$("#fs");if(fsb)fsb.disabled=true;
  S.sp=0;S.sm="";fprog(0,`دانلود از ${SRC.length} منبع...`);showFound();
  const all=new Set;let ok=0,k=0;const pt=($("#ft")||{}).value||"";
- parseList(pt,all);
+ parseList(pt,all,"HTTP");
  try{
   const ff=$("#ff"),file=ff&&ff.files&&ff.files[0];
-  if(file){const tx=await file.text();parseList(tx,all);L("INFO","file "+file.name)}
+  if(file){const tx=await file.text();parseList(tx,all,"HTTP");L("INFO","file "+file.name+" (HTTP)") }
   const cu=(($("#fu")||{}).value||"").trim(),base=SRC;
-  const srcs=cu?[["custom",[cu,...px(cu)]],...base]:base;
+  const srcs=cu?[["custom",[cu,...px(cu)],"HTTP"],...base]:base;
   S.minsec=0;st.set("minsec",0);
-  await pool(srcs.slice(),8,async([nm,us])=>{
+  await pool(srcs.slice(),8,async([nm,us,srcType])=>{
    if(S.stop)return;
    const t=await getTxt(us),before=all.size;
-   parseList(t,all);
+   parseList(t,all,srcType);
    if(all.size>before)ok++;else L("WARN","منبع خالی/ناموفق: "+nm);
    k++;fprog(Math.round(k/srcs.length*18),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی یکتا: ${all.size}`);
   },()=>S.stop||all.size>=60000);
@@ -304,10 +304,10 @@ async function runFind(){
   let done=0,failedFast=0;
   await pool(items,100,async item=>{
    if(S.stop)return;
-   const parts=item.split(":");if(parts.length!==2)return;
-   const [h,p]=parts,r=await probe(h,p,mx);
+   const pair=item.split("|"),type=pair.length>1?pair[0]:"HTTP",parts=(pair.length>1?pair[1]:pair[0]).split(":");if(parts.length!==2)return;
+   const [h,p]=parts,r=await probe(h,p,mx,type);
    done++;
-   if(r.r==="ok"&&r.ms<=mx){S.found.push({h,p,ms:r.ms,verified:true});if(S.found.length%4===1)showFound()}
+   if(r.r==="ok"&&r.ms<=mx){S.found.push({h,p,type,ms:r.ms,verified:true});if(S.found.length%4===1)showFound()}
    else if(r.r==="err"&&r.ms<40)failedFast++;
    if(done%5===0||done===items.length){
     fprog(18+Math.round(done/items.length*82),`تست ${done} از ${items.length} · پروکسی تأییدشده: ${S.found.length}`);
