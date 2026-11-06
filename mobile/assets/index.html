@@ -331,7 +331,8 @@ async function runFind(){
   },()=>S.stop);
   const warn=done>=100&&!S.found.length&&failedFast/done>.8?" ⚠️ تقریباً همهٔ تست‌ها سریع رد شدند؛ اتصال سرویس اندروید یا دسترسی شبکه را بررسی کن.":"";
   fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پروکسی با handshake موفق از ${done} تست · ${ok} منبع فعال${warn}`);
-  L("INFO",`Finder done: ${S.found.length} proxy handshakes accepted from ${done} tests`);\n  if(!S.stop&&S.found.length){fprog(100,`اسکن تمام شد؛ بررسی امنیت ${Math.min(S.found.length,S.secN)} مورد برتر شروع می‌شود...`);await secScan(false)}
+  L("INFO",`Finder done: ${S.found.length} proxy handshakes accepted from ${done} tests`);
+  if(!S.stop&&S.found.length){fprog(100,`اسکن تمام شد؛ بررسی امنیت ${Math.min(S.found.length,S.secN)} مورد برتر شروع می‌شود...`);await secScan(false)}
  }catch(e){
   L("ERR","Finder: "+(e&&e.message||e));
   fprog(S.fp,"❌ خطای اسکن: "+(e&&e.message||"خطای ناشناخته"));
