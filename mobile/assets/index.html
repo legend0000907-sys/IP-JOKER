@@ -149,7 +149,21 @@ async function testProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<spa
 const ok=rs.filter(x=>x.r=="ok"),er=rs.filter(x=>x.r=="err"),av=a=>Math.round(a.reduce((s,x)=>s+x.ms,0)/a.length);let m;
 if(ok.length)m=`<span class="g">✅ handshake پروتکل موفق بود؛ دسترسی واقعی اینترنت هنوز تأیید نشده است · ${av(ok)}ms · ${ok.length} از ۳</span>`;else if(er.length)m=`<span class="a">⚠️ پاسخ قابل‌خواندن دریافت نشد؛ ممکن است پروتکل/فایروال مانع باشد (${av(er)}ms). اگر SOCKS5 است، مرورگر نمی‌تواند تأیید کند.</span>`;else m='<span class="r">❌ پاسخی نیامد (timeout)</span>';
 L("INFO",`test ${p.host}:${p.port} → ${rs.map(x=>x.r).join(",")}`);H("#pr",m);const b=$("#tb");if(b)b.disabled=false}
-async function stabProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');const N=20,ms=[];let lost=0;for(let i=0;i<N;i++){const r=await probe(p.host,p.port,3000,p.type||"HTTP");r.r=="ok"?ms.push(r.ms):lost++;if(S.tab!="dash")return;H("#pr",`⏳ ${i+1}/${N} · ${r.r=="ok"?r.ms+"ms":"✗"}`);await sleep(250)}H("#pr",stabHtml(stats(ms,lost,N)))}
+async function stabProxy(){
+ const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');
+ if(S.busy.stabProxy)return;S.busy.stabProxy=1;
+ const N=20,ms=[];let lost=0;
+ try{
+  for(let i=0;i<N;i++){
+   const r=await probe(p.host,p.port,5000,p.type||"HTTP");
+   r.r==="ok"?ms.push(r.ms):lost++;
+   if(S.tab!=="dash")return;
+   H("#pr",`⏳ ${i+1}/${N} · ${r.r==="ok"?r.ms+"ms":"✗"}`);
+   await sleep(250);
+  }
+  H("#pr",stabHtml(stats(ms,lost,N))+'<div class="mu">این تست پایداری handshake پروکسی است؛ وب‌گردی واقعی از داخل VPN جداگانه باید آزمایش شود.</div>');
+ }finally{S.busy.stabProxy=0}
+}
 function saveP(silent=false){const p=rd();if(!p.host||!/^\d{1,5}$/.test(p.port)||+p.port<1||+p.port>65535){if(!silent)toast("آدرس و پورت معتبر وارد کن");return false}const i=S.saved.findIndex(s=>s.host==p.host&&s.port==p.port&&s.type==p.type);if(i>=0)S.saved.splice(i,1);S.saved.unshift({...p,savedAt:Date.now()});S.saved=S.saved.slice(0,100);st.set("saved",S.saved);try{nativeProxyBridge()?.saveProfile(p.host,p.port,p.type)}catch(e){L("WARN","native save: "+e.message)}if(!silent){V.dash();toast("پروکسی ذخیره شد ✓")}return true}
 function copyP(){const p=rd();if(p.host&&p.port)copy(`${p.type=="SOCKS5"?"socks5":String(p.type).toLowerCase()}://${p.host.includes(":")?"["+p.host+"]":p.host}:${p.port}`);else toast("آدرس و پورت را وارد کن")}
 function useP(i){if(!S.saved[i])return;S.proxy={...S.saved[i]};st.set("proxy",S.proxy);try{nativeProxyBridge()?.saveCurrentProfile(S.proxy.host,S.proxy.port,S.proxy.type)}catch(e){}V.dash()}
@@ -184,7 +198,7 @@ const secBadge=r=>`<span class="badge ${LV[r.lv][1]}">${LV[r.lv][2]} ${LV[r.lv][
 const secWhy=r=>(r.bad.map(x=>"⛔ "+x).concat(r.why.map(x=>"• "+x))).map(esc).join(" · ")+(r.rep&&r.rep.org?" · "+esc(r.rep.org):"");
 function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">این فقط ارزیابی شهرت IP و چند شاخص سطحی است؛ رمزنگاری مسیر، ثبت لاگ، شنود یا نشت داده را ثابت نمی‌کند. پروکسی عمومی را برای بانک و رمز استفاده نکن.</div>`}
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
-H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
+H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type||"HTTP"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
 const SOURCE_URLS=[
  ["ProxyScrape HTTP","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/http/data.txt","HTTP"],
