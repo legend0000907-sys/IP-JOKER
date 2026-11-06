@@ -116,7 +116,7 @@ async function probe(h,p,to,sc="http"){
  const t=performance.now(),bridge=window.IPJokerVPN;
  if(!bridge||typeof bridge.probeProxy!=="function")return{r:"unsupported",ms:0,message:"تست واقعی فقط در APK انجام می‌شود"};
  try{
-  const r=await Promise.race([bridge.probeProxy(h,+p,"HTTP"),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),to+1500))]);
+  const r=await Promise.race([bridge.probeProxy(h,+p,"HTTP"),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),Math.max(8000,to+1500)))]);
   return{r:r&&r.ok?"ok":"err",ms:r&&r.ms!=null?r.ms:Math.round(performance.now()-t),message:r&&r.message||""};
  }catch(e){return{r:"err",ms:Math.round(performance.now()-t),message:e.message||String(e)}}
 }
@@ -293,7 +293,7 @@ async function runFind(){
    k++;fprog(Math.round(k/srcs.length*18),`دانلود ${k}/${srcs.length} · منبع فعال: ${ok} · آی‌پی یکتا: ${all.size}`);
   },()=>S.stop||all.size>=60000);
   if(S.stop){fprog(0,"دانلود متوقف شد");return}
-  if(all.size)st.set("lc",shuffleList([...all]).slice(0,6000));
+  if(all.size)st.set("lc",shuffleList([...all]).slice(0,20000));
   else{
    const cache=st.get("lc",[]);
    if(cache.length){cache.forEach(x=>all.add(x));L("INFO","cache "+cache.length);fprog(18,"⚠️ دانلود نشد؛ از آخرین فهرست ذخیره‌شده استفاده شد ("+cache.length+")")}
@@ -302,7 +302,7 @@ async function runFind(){
   if(!items.length){fprog(0,await failWhy());return}
   L("INFO","Finder candidates: "+items.length+" IP:PORT from "+ok+" sources");
   let done=0,failedFast=0;
-  await pool(items,75,async item=>{
+  await pool(items,100,async item=>{
    if(S.stop)return;
    const parts=item.split(":");if(parts.length!==2)return;
    const [h,p]=parts,r=await probe(h,p,mx);
