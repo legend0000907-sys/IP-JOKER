@@ -143,6 +143,213 @@ class _IpJokerHomeState extends State<IpJokerHome> {
       socket?.destroy();
     }
   }
+  Future<Map<String, dynamic>> _checkTunnelInternet() async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 8)
+      ..idleTimeout = const Duration(seconds: 4)
+      ..userAgent = 'IP-JOKER-Tunnel-Check/1.0';
+    try {
+      final request = await client
+          .getUrl(Uri.parse('https://www.cloudflare.com/cdn-cgi/trace'))
+          .timeout(const Duration(seconds: 10));
+      request.followRedirects = true;
+      final response = await request.close().timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        return {
+          'ok': false,
+          'message': 'آزمون اینترنت پاسخ HTTP ${response.statusCode} داد.',
+        };
+      }
+      final body = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 5));
+      final match = RegExp(r'^ip=(.+)
+    final uri = Uri.tryParse(url);
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+      throw const FormatException('آدرس منبع معتبر نیست');
+    }
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 5)
+      ..idleTimeout = const Duration(seconds: 2)
+      ..userAgent = 'IP-JOKER/1.0';
+    try {
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 6));
+      request.followRedirects = true;
+      final response = await request.close().timeout(const Duration(seconds: 7));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return {'ok': false, 'status': response.statusCode, 'text': ''};
+      }
+      if (response.contentLength > 2 * 1024 * 1024) {
+        return {'ok': false, 'status': response.statusCode, 'text': '', 'message': 'فایل منبع بیش از حد بزرگ است'};
+      }
+      final text = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 7));
+      return {'ok': true, 'status': response.statusCode, 'text': text};
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _handle(String raw) async {
+    var id = '0';
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      id = data['id']?.toString() ?? '0';
+      final action = data['action'] as String? ?? '';
+      final args = (data['args'] as Map?)?.cast<String, dynamic>() ?? {};
+
+      switch (action) {
+        case 'fetchText':
+          final result = await _fetchText((args['url'] ?? '').toString());
+          await _reply(id, result);
+          break;
+
+        case 'probeProxy':
+          final host = (args['host'] ?? '').toString().trim();
+          final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
+          final type = (args['type'] ?? 'HTTP').toString().toUpperCase();
+          if (!const ['HTTP', 'HTTPS', 'SOCKS5'].contains(type)) {
+            await _reply(id, {'ok': false, 'message': 'نوع پروکسی پشتیبانی نمی‌شود'});
+          } else if (host.isEmpty || port < 1 || port > 65535) {
+            await _reply(id, {'ok': false, 'message': 'IP یا پورت نامعتبر است'});
+          } else {
+            await _reply(id, await _probeProxy(host, port, type));
+          }
+          break;
+
+        case 'connect':
+          final host = (args['host'] ?? '').toString();
+          final port = int.tryParse((args['port'] ?? '').toString()) ?? 0;
+          final type = (args['type'] ?? 'HTTP').toString();
+          final proxyLink = buildProxyLink(host: host, port: port, type: type);
+          await SingBox.instance.requestNotificationPermission();
+          await _serializeVpn(() => SingBox.instance.connect(proxyLink));
+          final active = SingBox.instance.status.isActive;
+          if (!active) {
+            await _reply(id, {
+              'ok': false,
+              'connected': false,
+              'internet': false,
+              'message': 'موتور VPN فعال نشد؛ اتصال برقرار نشد.',
+            });
+            break;
+          }
+
+          // A running VpnService is not proof that the selected proxy can carry traffic.
+          // Verify a real HTTPS request through Android's VPN-routed network before
+          // reporting success to the WebView.
+          final check = await _checkTunnelInternet();
+          await _reply(id, {
+            'ok': check['ok'] == true,
+            'connected': true,
+            'internet': check['ok'] == true,
+            'exitIp': check['ip'],
+            'message': check['ok'] == true
+                ? 'اتصال واقعی برقرار است ✓  IP خروجی: ${check['ip']}'
+                : 'تونل روشن شد، اما اینترنت از پروکسی عبور نمی‌کند. ${check['message']}',
+          });
+          break;
+
+        case 'disconnect':
+          await _serializeVpn(() => SingBox.instance.disconnect());
+          await _reply(id, {
+            'ok': true,
+            'connected': false,
+            'message': 'اتصال VPN قطع شد',
+          });
+          break;
+
+        case 'status':
+          final status = SingBox.instance.status;
+          await _reply(id, {
+            'ok': true,
+            'connected': status.isActive,
+            'message': status.name,
+          });
+          break;
+
+        case 'save':
+          await _reply(id, {'ok': true, 'message': 'پروفایل در حافظهٔ برنامه ذخیره شد'});
+          break;
+
+        default:
+          await _reply(id, {'ok': false, 'message': 'درخواست ناشناخته است'});
+      }
+    } on SingBoxException catch (error) {
+      await _reply(id, {'ok': false, 'message': error.message});
+    } catch (error) {
+      debugPrint('IP JOKER action error: $error');
+      await _reply(id, {'ok': false, 'message': error.toString()});
+    }
+  }
+
+  Future<void> _serializeVpn(Future<void> Function() operation) {
+    final next = _vpnQueue.then((_) => operation());
+    _vpnQueue = next.catchError((Object _) {});
+    return next;
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              WebViewWidget(controller: controller),
+              if (!ready || !nativeReady && startupError == null)
+                const Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ),
+      );
+}
+
+class _SocketReader {
+  _SocketReader(Socket socket) : _iterator = StreamIterator<List<int>>(socket);
+  final StreamIterator<List<int>> _iterator;
+  final List<int> _buffer = [];
+  Future<List<int>> readExact(int count) async {
+    while (_buffer.length < count) {
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed the connection unexpectedly');
+      _buffer.addAll(_iterator.current);
+    }
+    final result = _buffer.sublist(0, count);
+    _buffer.removeRange(0, count);
+    return result;
+  }
+  Future<List<int>> readHeader() async {
+    while (true) {
+      for (var i = 0; i <= _buffer.length - 4; i++) {
+        if (_buffer[i] == 13 && _buffer[i+1] == 10 && _buffer[i+2] == 13 && _buffer[i+3] == 10) {
+          final result = _buffer.sublist(0, i+4);
+          _buffer.removeRange(0, i+4);
+          return result;
+        }
+      }
+      if (_buffer.length > 16384) throw const FormatException('Proxy response headers exceed 16 KiB');
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed before response headers completed');
+      _buffer.addAll(_iterator.current);
+    }
+  }
+}
+, multiLine: true).firstMatch(body);
+      final ip = match?.group(1)?.trim();
+      if (ip == null || ip.isEmpty) {
+        return {'ok': false, 'message': 'پاسخ تست اینترنت معتبر نبود.'};
+      }
+      return {'ok': true, 'ip': ip};
+    } catch (error) {
+      return {
+        'ok': false,
+        'message': 'تست اینترنت ناموفق: $error',
+      };
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   Future<Map<String, dynamic>> _fetchText(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
@@ -206,12 +413,29 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
           await _serializeVpn(() => SingBox.instance.connect(proxyLink));
-          await Future<void>.delayed(const Duration(milliseconds: 700));
           final active = SingBox.instance.status.isActive;
+          if (!active) {
+            await _reply(id, {
+              'ok': false,
+              'connected': false,
+              'internet': false,
+              'message': 'موتور VPN فعال نشد؛ اتصال برقرار نشد.',
+            });
+            break;
+          }
+
+          // A running VpnService is not proof that the selected proxy can carry traffic.
+          // Verify a real HTTPS request through Android's VPN-routed network before
+          // reporting success to the WebView.
+          final check = await _checkTunnelInternet();
           await _reply(id, {
-            'ok': active,
-            'connected': active,
-            'message': active ? 'سرویس VPN فعال شد؛ دسترسی واقعی اینترنت هنوز باید آزمایش شود' : 'موتور VPN فعال نشد؛ وضعیت اتصال ناموفق است',
+            'ok': check['ok'] == true,
+            'connected': true,
+            'internet': check['ok'] == true,
+            'exitIp': check['ip'],
+            'message': check['ok'] == true
+                ? 'اتصال واقعی برقرار است ✓  IP خروجی: ${check['ip']}'
+                : 'تونل روشن شد، اما اینترنت از پروکسی عبور نمی‌کند. ${check['message']}',
           });
           break;
 
