@@ -155,15 +155,9 @@ class _IpJokerHomeState extends State<IpJokerHome> {
       request.followRedirects = true;
       final response = await request.close().timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
-        return {
-          'ok': false,
-          'message': 'آزمون اینترنت پاسخ HTTP ${response.statusCode} داد.',
-        };
+        return {'ok': false, 'message': 'آزمون اینترنت پاسخ HTTP ${response.statusCode} داد.'};
       }
-      final body = await response
-          .transform(utf8.decoder)
-          .join()
-          .timeout(const Duration(seconds: 5));
+      final body = await response.transform(utf8.decoder).join().timeout(const Duration(seconds: 5));
       final match = RegExp(r'^ip=(.+)
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
@@ -227,6 +221,7 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
           await _serializeVpn(() => SingBox.instance.connect(proxyLink));
+          await Future<void>.delayed(const Duration(milliseconds: 700));
           final active = SingBox.instance.status.isActive;
           if (!active) {
             await _reply(id, {
@@ -337,10 +332,7 @@ class _SocketReader {
       }
       return {'ok': true, 'ip': ip};
     } catch (error) {
-      return {
-        'ok': false,
-        'message': 'تست اینترنت ناموفق: $error',
-      };
+      return {'ok': false, 'message': 'تست اینترنت ناموفق: $error'};
     } finally {
       client.close(force: true);
     }
@@ -409,25 +401,12 @@ class _SocketReader {
           final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
           await _serializeVpn(() => SingBox.instance.connect(proxyLink));
+          await Future<void>.delayed(const Duration(milliseconds: 700));
           final active = SingBox.instance.status.isActive;
-          if (!active) {
-            await _reply(id, {
-              'ok': false,
-              'connected': false,
-              'internet': false,
-              'message': 'موتور VPN فعال نشد؛ اتصال برقرار نشد.',
-            });
-            break;
-          }
-          final check = await _checkTunnelInternet();
           await _reply(id, {
-            'ok': check['ok'] == true,
-            'connected': true,
-            'internet': check['ok'] == true,
-            'exitIp': check['ip'],
-            'message': check['ok'] == true
-                ? 'اتصال واقعی برقرار است ✓  IP خروجی: ${check['ip']}'
-                : 'تونل روشن شد، اما اینترنت از پروکسی عبور نمی‌کند. ${check['message']}',
+            'ok': active,
+            'connected': active,
+            'message': active ? 'سرویس VPN فعال شد؛ دسترسی واقعی اینترنت هنوز باید آزمایش شود' : 'موتور VPN فعال نشد؛ وضعیت اتصال ناموفق است',
           });
           break;
 
