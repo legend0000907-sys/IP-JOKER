@@ -237,10 +237,6 @@ class _IpJokerHomeState extends State<IpJokerHome> {
             });
             break;
           }
-
-          // A running VpnService is not proof that the selected proxy can carry traffic.
-          // Verify a real HTTPS request through Android's VPN-routed network before
-          // reporting success to the WebView.
           final check = await _checkTunnelInternet();
           await _reply(id, {
             'ok': check['ok'] == true,
@@ -423,10 +419,6 @@ class _SocketReader {
             });
             break;
           }
-
-          // A running VpnService is not proof that the selected proxy can carry traffic.
-          // Verify a real HTTPS request through Android's VPN-routed network before
-          // reporting success to the WebView.
           final check = await _checkTunnelInternet();
           await _reply(id, {
             'ok': check['ok'] == true,
