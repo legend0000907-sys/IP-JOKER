@@ -112,11 +112,11 @@ async function nget(u,ms=9000){
 }
 async function geo(ip=""){try{const d=JSON.parse((await nget("https://ipwho.is/"+ip,9000)).text);if(!d.success)throw 0;return d}catch(e){const d=JSON.parse((await nget("https://ipapi.co/"+(ip?ip+"/":"")+"json/",9000)).text);if(d.error||!d.ip)throw new Error("پاسخ معتبر نیامد");return{ip:d.ip,country:d.country_name,flag:{emoji:flagOf(d.country_code)},city:d.city,connection:{isp:d.org}}}}
 const geoHtml=d=>`<div class="kv"><span>IP</span><span>${esc(d.ip)}</span></div><div class="kv"><span>کشور</span><span>${esc((d.flag&&d.flag.emoji||"")+" "+(d.country||"-"))}</span></div><div class="kv"><span>شهر</span><span>${esc(d.city||"-")}</span></div><div class="kv"><span>ISP</span><span>${esc(d.connection&&d.connection.isp||"-")}</span></div>`;
-async function probe(h,p,to,sc="http"){
+async function probe(h,p,to,sc="HTTP"){
  const t=performance.now(),bridge=window.IPJokerVPN;
  if(!bridge||typeof bridge.probeProxy!=="function")return{r:"unsupported",ms:0,message:"تست واقعی فقط در APK انجام می‌شود"};
  try{
-  const r=await Promise.race([bridge.probeProxy(h,+p,"HTTP"),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),Math.max(8000,to+1500)))]);
+  const r=await Promise.race([bridge.probeProxy(h,+p,String(sc||"HTTP").toUpperCase()),new Promise((_,j)=>setTimeout(()=>j(Object.assign(new Error("timeout"),{name:"AbortError"})),Math.max(8000,to+1500)))]);
   return{r:r&&r.ok?"ok":"err",ms:r&&r.ms!=null?r.ms:Math.round(performance.now()-t),message:r&&r.message||""};
  }catch(e){return{r:"err",ms:Math.round(performance.now()-t),message:e.message||String(e)}}
 }
@@ -149,7 +149,7 @@ async function testProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<spa
 const ok=rs.filter(x=>x.r=="ok"),er=rs.filter(x=>x.r=="err"),av=a=>Math.round(a.reduce((s,x)=>s+x.ms,0)/a.length);let m;
 if(ok.length)m=`<span class="g">✅ پاسخ HTTP دریافت شد (پروکسی بودن تأیید نشده) است · ${av(ok)}ms · ${ok.length} از ۳</span>`;else if(er.length)m=`<span class="a">⚠️ پاسخ قابل‌خواندن دریافت نشد؛ ممکن است پروتکل/فایروال مانع باشد (${av(er)}ms). اگر SOCKS5 است، مرورگر نمی‌تواند تأیید کند.</span>`;else m='<span class="r">❌ پاسخی نیامد (timeout)</span>';
 L("INFO",`test ${p.host}:${p.port} → ${rs.map(x=>x.r).join(",")}`);H("#pr",m);const b=$("#tb");if(b)b.disabled=false}
-async function stabProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');const N=20,ms=[];let lost=0;for(let i=0;i<N;i++){const r=await probe(p.host,p.port,3000,p.type=="HTTPS"?"https":"http");r.r=="ok"?ms.push(r.ms):lost++;if(S.tab!="dash")return;H("#pr",`⏳ ${i+1}/${N} · ${r.r=="ok"?r.ms+"ms":"✗"}`);await sleep(250)}H("#pr",stabHtml(stats(ms,lost,N)))}
+async function stabProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');const N=20,ms=[];let lost=0;for(let i=0;i<N;i++){const r=await probe(p.host,p.port,3000,p.type||"HTTP");r.r=="ok"?ms.push(r.ms):lost++;if(S.tab!="dash")return;H("#pr",`⏳ ${i+1}/${N} · ${r.r=="ok"?r.ms+"ms":"✗"}`);await sleep(250)}H("#pr",stabHtml(stats(ms,lost,N)))}
 function saveP(silent=false){const p=rd();if(!p.host||!/^\d{1,5}$/.test(p.port)||+p.port<1||+p.port>65535){if(!silent)toast("آدرس و پورت معتبر وارد کن");return false}const i=S.saved.findIndex(s=>s.host==p.host&&s.port==p.port&&s.type==p.type);if(i>=0)S.saved.splice(i,1);S.saved.unshift({...p,savedAt:Date.now()});S.saved=S.saved.slice(0,100);st.set("saved",S.saved);try{nativeProxyBridge()?.saveProfile(p.host,p.port,p.type)}catch(e){L("WARN","native save: "+e.message)}if(!silent){V.dash();toast("پروکسی ذخیره شد ✓")}return true}
 function copyP(){const p=rd();if(p.host&&p.port)copy(`${p.type=="SOCKS5"?"socks5":String(p.type).toLowerCase()}://${p.host.includes(":")?"["+p.host+"]":p.host}:${p.port}`);else toast("آدرس و پورت را وارد کن")}
 function useP(i){if(!S.saved[i])return;S.proxy={...S.saved[i]};st.set("proxy",S.proxy);try{nativeProxyBridge()?.saveCurrentProfile(S.proxy.host,S.proxy.port,S.proxy.type)}catch(e){}V.dash()}
@@ -186,21 +186,8 @@ function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>$
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
 H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
-const SOURCE_URLS=[
- ["ProxyScrape API","https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"],
- ["Litport","https://raw.githubusercontent.com/litportnet/free-proxy-list/live/proxies/http.txt"],
- ["VMHeaven","https://raw.githubusercontent.com/vmheaven/VMHeaven-Free-Proxy-Updated/refs/heads/main/http.txt"],
- ["KangProxy","https://cdn.jsdelivr.net/gh/officialputuid/KangProxy@main/http/http.txt"],
- ["Monosans","https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"],
- ["Tsprnay","https://raw.githubusercontent.com/Tsprnay/Proxy-lists/master/proxies/http.txt"],
- ["ObcbO","https://raw.githubusercontent.com/ObcbO/getproxy/master/file/http.txt"],
- ["ProxyScraper","https://raw.githubusercontent.com/ProxyScrape/ProxyScraper/main/http.txt"],
- ["dpangestuw","https://raw.githubusercontent.com/dpangestuw/Free-Proxy/main/http_proxies.txt"],
- ["gfpcom","https://raw.githubusercontent.com/gfpcom/free-proxy-list/main/list/http.txt"],
- ["TheSpeedX","https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"],
- ["jetkai","https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt"]
-];
-const SRC=SOURCE_URLS.map(([name,url])=>[name,[url]]);
+const SOURCE_URLS=["HTTP","HTTPS","SOCKS5"].map(type=>["ProxyScrape "+type,"https://api.proxyscrape.com/v2/?request=getproxies&protocol="+type.toLowerCase()+"&timeout=10000&country=all&ssl=all&anonymity=all",type]);
+const SRC=SOURCE_URLS.map(([name,url,type])=>[name,[url],type]);
 const px=u=>["https://api.allorigins.win/raw?url="+encodeURIComponent(u)];
 const host=u=>{try{return new URL(u).hostname}catch(e){return u}};
 const DLE={};
@@ -243,7 +230,7 @@ let fq=0;
 const visF=()=>{const m=S.minsec;return[...S.found].filter(f=>m==0||(f.sec&&f.sec.lv>=m)).sort((x,y)=>(y.sec?y.sec.lv:-1)-(x.sec?x.sec.lv:-1)||(y.sec?y.sec.s:0)-(x.sec?x.sec.s:0)||x.ms-y.ms)};
 function showFound(){if(fq)return;fq=requestAnimationFrame(()=>{fq=0;const all=S.found,a=visF(),pend=all.filter(f=>!f.sec).length,chk=all.length-pend;
 const b=a.find(f=>f.sec&&f.sec.lv>=Math.max(1,S.minsec)||f.sec&&S.minsec==0&&f.sec.lv>0);
-const best=b?`<div class="best"><b>🏆 بهترین پروکسی (ایمن‌ترین، سپس سریع‌ترین)</b><div class="item" style="flex-wrap:wrap;border:0"><span class="m">${b.h}:${b.p}</span>${secBadge(b.sec)}${msb(b.ms)}<button class="btn sm alt" data-c="http://${b.h}:${b.p}" onclick="cp(this)">📋</button><button class="btn sm" onclick="pickF('${b.h}','${b.p}')">استفاده</button><div class="why">${secWhy(b.sec)}</div></div></div>`:"";
+const best=b?`<div class="best"><b>🏆 بهترین پروکسی (ایمن‌ترین، سپس سریع‌ترین)</b><div class="item" style="flex-wrap:wrap;border:0"><span class="m">${b.h}:${b.p}</span>${secBadge(b.sec)}${msb(b.ms)}<button class="btn sm alt" data-c="${String(b.type||"HTTP").toLowerCase()}://${b.h}:${b.p}" onclick="cp(this)">📋</button><button class="btn sm" onclick="pickF('${b.h}','${b.p}')">استفاده</button><div class="why">${secWhy(b.sec)}</div></div></div>`:"";
 const cnt=`<div class="mu">${all.length} پروکسی تأییدشده · ${chk} بررسی‌شدهٔ امنیتی · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (فقط ${S.secN} پینگ برتر بررسی می‌شوند)`:""}</div>`;
 const empty=!all.length?'<div class="empty">هنوز چیزی پیدا نشده</div>':`<div class="empty">${chk?"هیچ پروکسی با این سطح ایمنی پیدا نشد. «نیمه‌امن» را انتخاب کن یا دوباره اسکن بزن.":"بررسی امنیت هنوز انجام نشده؛ دکمهٔ 🛡 را بزن."}</div>`;
 H("#fres",(all.length?cnt:"")+best+(a.length?a.slice(0,100).map(f=>{const k=f.h+":"+f.p;return`<div class="item" style="flex-wrap:wrap"><span class="badge">${esc(f.type||"HTTP")}</span><span class="m">${k}</span>${f.sec?secBadge(f.sec):""}${msb(f.ms)}<button class="btn sm alt" onclick="stabP('${f.h}','${f.p}')">📊</button><button class="btn sm" onclick="pickF('${f.h}','${f.p}')">استفاده</button>${f.sec?`<div class="why">${secWhy(f.sec)}</div>`:""}${S.pst[k]?`<div class="mu" style="width:100%;direction:ltr;text-align:left">${S.pst[k]}</div>`:""}</div>`}).join(""):empty))})}
