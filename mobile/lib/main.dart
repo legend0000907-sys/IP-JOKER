@@ -1,31 +1,3 @@
-class _SocketReader {
-  _SocketReader(Socket socket) : _iterator = StreamIterator<List<int>>(socket);
-  final StreamIterator<List<int>> _iterator;
-  final List<int> _buffer = [];
-  Future<List<int>> readExact(int count) async {
-    while (_buffer.length < count) {
-      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed the connection unexpectedly');
-      _buffer.addAll(_iterator.current);
-    }
-    final result = _buffer.sublist(0, count);
-    _buffer.removeRange(0, count);
-    return result;
-  }
-  Future<List<int>> readHeader() async {
-    while (true) {
-      for (var i = 0; i <= _buffer.length - 4; i++) {
-        if (_buffer[i] == 13 && _buffer[i+1] == 10 && _buffer[i+2] == 13 && _buffer[i+3] == 10) {
-          final result = _buffer.sublist(0, i+4);
-          _buffer.removeRange(0, i+4);
-          return result;
-        }
-      }
-      if (_buffer.length > 16384) throw const FormatException('Proxy response headers exceed 16 KiB');
-      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed before response headers completed');
-      _buffer.addAll(_iterator.current);
-    }
-  }
-}
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -293,3 +265,46 @@ class _IpJokerHomeState extends State<IpJokerHome> {
         ),
       );
 }
+
+class _SocketReader {
+  _SocketReader(Socket socket) : _iterator = StreamIterator<List<int>>(socket);
+  final StreamIterator<List<int>> _iterator;
+  final List<int> _buffer = [];
+  Future<List<int>> readExact(int count) async {
+    while (_buffer.length < count) {
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed the connection unexpectedly');
+      _buffer.addAll(_iterator.current);
+    }
+    final result = _buffer.sublist(0, count);
+    _buffer.removeRange(0, count);
+    return result;
+  }
+  Future<List<int>> readHeader() async {
+    while (true) {
+      for (var i = 0; i <= _buffer.length - 4; i++) {
+        if (_buffer[i] == 13 && _buffer[i+1] == 10 && _buffer[i+2] == 13 && _buffer[i+3] == 10) {
+          final result = _buffer.sublist(0, i+4);
+          _buffer.removeRange(0, i+4);
+          return result;
+        }
+      }
+      if (_buffer.length > 16384) throw const FormatException('Proxy response headers exceed 16 KiB');
+      if (!await _iterator.moveNext()) throw const SocketException('Proxy closed before response headers completed');
+      _buffer.addAll(_iterator.current);
+    }
+  }
+}
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:sing_box/sing_box.dart';
+import 'package:ip_joker/proxy_link.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const IpJokerApp());
+}
+
