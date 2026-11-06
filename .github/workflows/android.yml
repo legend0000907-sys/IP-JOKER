@@ -37,6 +37,19 @@ jobs:
         working-directory: mobile
         run: flutter pub get
 
+      - name: Validate embedded JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('mobile/assets/index.html').read_text()
+          scripts = re.findall(r'<script\\b[^>]*>([\\s\\S]*?)</script>', html, re.I)
+          if not scripts:
+              raise SystemExit('No inline JavaScript found')
+          Path('/tmp/ipjoker-inline.js').write_text(scripts[-1])
+          PY
+          node --check /tmp/ipjoker-inline.js
+
       - name: Static analysis
         working-directory: mobile
         run: flutter analyze
