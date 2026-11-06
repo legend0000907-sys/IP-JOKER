@@ -177,7 +177,7 @@ function parseList(t,out,type="HTTP"){out=out||new Set;const kind=String(type||"
 // ---------- security engine
 const STDP=new Set([80,8080,3128,8000,8888,8118,443,8443,8081,8082,8088,3129,808,8008,8090,9090,3127,8001,8123]);
 const BADP=new Set([21,22,23,25,53,110,111,135,137,139,143,389,445,465,587,993,995,1433,1521,2375,3306,3389,5432,5900,6379,9200,11211,27017]);
-const LV=[["ناامن","r","🔴"],["نیمه‌امن","a","🟡"],["ایمن","g","🟢"]];
+const LV=[["ریسک بالا","r","🔴"],["ریسک نامشخص","a","🟡"],["ریسک کمتر","g","🟢"]];
 S.rep=S.rep||{};S.repFail=0;S.repOff=0;
 async function repOf(ip){if(S.rep[ip])return S.rep[ip];if(Date.now()<S.repOff)return null;let r=null;
 try{const d=JSON.parse((await nget("https://api.ipapi.is/?q="+ip,8000)).text);if(!d||!d.ip)throw new Error("پاسخ نامعتبر");const sc=x=>{const m=String(x||"").match(/^[\d.]+/);return m?parseFloat(m[0]):0};
@@ -192,11 +192,11 @@ if(rep.bogon){s-=50;bad.push("bogon")}if(rep.abuser){s-=35;bad.push("IP گزار
 if(rep.crawler){s-=10;why.push("کرالر/اسکنر")}if(rep.sc>.05){s-=25;bad.push("امتیاز سوءاستفاده بالا")}else if(rep.sc>.01){s-=10;why.push("امتیاز سوءاستفاده متوسط")}
 if(!rep.abuser&&!rep.tor&&!rep.crawler&&!rep.bogon&&rep.sc<=.01){s+=20;why.push("سابقهٔ تمیز")}}
 if(ms<=(S.fmx||400)/2)s+=5;s=Math.max(0,Math.min(cap,s));if(bad.length)s=Math.min(s,45);
-return{s,lv:bad.length?0:s>=75?2:s>=50?1:0,why,bad}}
+return{s,lv:bad.length?0:s>=65?2:s>=45?1:0,why,bad}}
 async function secOne(h,p,ms){const rep=await repOf(h);const r=scoreSec({h,p,ms:ms==null?9e9:ms,tls:false,rep});r.rep=rep;r.tls=false;L("SEC",`${h}:${p} → ${LV[r.lv][0]} ${r.s} ${r.bad.concat(r.why).join(",")}`);return r}
 const secBadge=r=>`<span class="badge ${LV[r.lv][1]}">${LV[r.lv][2]} ${LV[r.lv][0]} · ${r.s}</span>`;
 const secWhy=r=>(r.bad.map(x=>"⛔ "+x).concat(r.why.map(x=>"• "+x))).map(esc).join(" · ")+(r.rep&&r.rep.org?" · "+esc(r.rep.org):"");
-function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">این فقط ارزیابی شهرت IP و چند شاخص سطحی است؛ رمزنگاری مسیر، ثبت لاگ، شنود یا نشت داده را ثابت نمی‌کند. پروکسی عمومی را برای بانک و رمز استفاده نکن.</div>`}
+function secHtml(r){return`<div class="kv"><span>ارزیابی ریسک</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">این فقط ارزیابی شهرت IP و چند شاخص سطحی است؛ رمزنگاری مسیر، ثبت لاگ، شنود یا نشت داده را ثابت نمی‌کند. پروکسی عمومی را برای بانک و رمز استفاده نکن.</div>`}
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
 H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type||"HTTP"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
@@ -250,7 +250,7 @@ async function getTxt(us){
 V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی HTTP / HTTPS / SOCKS5</h3>
 <div class="mu">منابع عمومی را موازی دانلود می‌کند و کاندیداهای یکتا را با چندین تست هم‌زمان بررسی می‌کند. پاسخ‌گو یعنی handshake پروتکل و پذیرش درخواست CONNECT؛ این به‌تنهایی دسترسی واقعی اینترنت از تونل را تضمین نمی‌کند. مقصد با TLS استاندارد سیستم (TLS 1.2/1.3 در صورت پشتیبانی اندروید) بررسی می‌شود؛ «TLS 3.14» استانداردی وجود ندارد. اسکنر نوع هر منبع را حفظ می‌کند و HTTP، HTTPS-proxy و SOCKS5 را جداگانه آزمایش می‌کند.</div>
 <div class="row"><select id="fn">${[5000,10000,20000].map(v=>`<option value="${v}" ${v==fn?"selected":""}>${v} آی‌پی</option>`).join("")}</select><input id="fm" class="fx" value="${S.fmx}" inputmode="numeric"></div><div class="mu" style="margin-top:-2px">عدد سمت چپ: حداکثر پینگ مجاز (ms)؛ بالاتر از آن در زنده‌ها نمی‌آید</div>
-<div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 نیمه‌امن و ایمن"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
+<div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 ریسک نامشخص و کمتر"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
 <input id="fu" placeholder="آدرس لیست دلخواه (اختیاری) https://..."><textarea id="ft" placeholder="یا لیست IP:PORT را اینجا بچسبان (اختیاری)" style="min-height:60px"></textarea><div class="mu">یا فایل لیست (txt):</div><input id="ff" type="file" accept=".txt,text/plain" style="font-size:12px"><div class="row"><button class="btn" id="fs" onclick="runFind()" ${b?"disabled":""}>▶️ دانلود و اسکن</button><button class="btn alt" onclick="S.stop=true">⏹ توقف</button></div>
 <div class="bar"><i id="fb" style="width:${S.fp}%"></i></div><div id="fmsg" class="mu">${esc(S.fm)}</div><div class="bar"><i id="sb2" style="width:${S.sp||0}%"></i></div><div id="smsg" class="mu">${esc(S.sm||"")}</div></div>
 <div class="card"><h3><b>🧾</b>بررسی منابع (${SRC.length})</h3><div class="mu">هر منبع را دانلود می‌کند و می‌شمارد چند IP:PORT معتبر و عمومی دارد. منابع خالی/خراب ۱۲ ساعت از اسکن کنار گذاشته می‌شوند.</div><div class="row"><button class="btn alt" id="cb" onclick="checkSrc()" ${S.busy.chk?"disabled":""}>🧪 بررسی همهٔ منابع</button><button class="btn alt" onclick="S.stopC=true">⏹ توقف</button></div><button class="btn alt full" onclick="st.set('dead',null);toast('لیست منابع خراب پاک شد')">♻️ بازنشانی منابع کنارگذاشته</button><div class="bar"><i id="cbar" style="width:${S.cp||0}%"></i></div><div id="cmsg" class="mu">${S.cm||""}</div><div id="crs"></div></div>
