@@ -159,7 +159,7 @@ function delP(i){const x=S.saved[i];S.saved.splice(i,1);st.set("saved",S.saved);
 const isPub4=h=>{const m=String(h).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);if(!m)return false;const o=m.slice(1).map(Number);if(o.some(v=>v>255)||m.slice(1).some(v=>v.length>1&&v[0]=="0"))return false;const n=(((o[0]*256+o[1])*256+o[2])*256+o[3])>>>0;
 const R=[[0,8],[10,8],[100*16777216+64*65536,10],[127,8],[169*16777216+254*65536,16],[172*16777216+16*65536,12],[192*16777216,24],[192*16777216+2*256,24],[192*16777216+88*65536+99*256,24],[192*16777216+168*65536,16],[198*16777216+18*65536,15],[198*16777216+51*65536+100*256,24],[203*16777216+113*256,24]];
 if(o[0]>=224)return false;for(const[b,l]of R){const base=l==8&&b<256?b*16777216:b,sz=2**(32-l);if(n>=base&&n<base+sz)return false}return true};
-function parseList(t,out){out=out||new Set;for(const x of String(t).matchAll(/(?:^|[^\d.])((?:\d{1,3}\.){3}\d{1,3}):(\d{2,5})(?!\d)/gm)){const p=+x[2];if(isPub4(x[1])&&p>0&&p<65536)out.add(x[1]+":"+p)}return out}
+function parseList(t,out,type="HTTP"){out=out||new Set;const kind=String(type||"HTTP").toUpperCase();for(const x of String(t).matchAll(/(?:^|[^\d.])((?:\d{1,3}\.){3}\d{1,3}):(\d{2,5})(?!\d)/gm)){const p=+x[2];if(isPub4(x[1])&&p>0&&p<65536)out.add(kind+"|"+x[1]+":"+p)}return out}
 // ---------- security engine
 const STDP=new Set([80,8080,3128,8000,8888,8118,443,8443,8081,8082,8088,3129,808,8008,8090,9090,3127,8001,8123]);
 const BADP=new Set([21,22,23,25,53,110,111,135,137,139,143,389,445,465,587,993,995,1433,1521,2375,3306,3389,5432,5900,6379,9200,11211,27017]);
@@ -182,7 +182,7 @@ return{s,lv:bad.length?0:s>=75?2:s>=50?1:0,why,bad}}
 async function secOne(h,p,ms){const rep=await repOf(h);const r=scoreSec({h,p,ms:ms==null?9e9:ms,tls:false,rep});r.rep=rep;r.tls=false;L("SEC",`${h}:${p} → ${LV[r.lv][0]} ${r.s} ${r.bad.concat(r.why).join(",")}`);return r}
 const secBadge=r=>`<span class="badge ${LV[r.lv][1]}">${LV[r.lv][2]} ${LV[r.lv][0]} · ${r.s}</span>`;
 const secWhy=r=>(r.bad.map(x=>"⛔ "+x).concat(r.why.map(x=>"• "+x))).map(esc).join(" · ")+(r.rep&&r.rep.org?" · "+esc(r.rep.org):"");
-function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">«ایمن» یعنی هیچ علامت خطری پیدا نشد؛ پروکسی رایگان هیچ‌وقت تضمین ۱۰۰٪ ندارد. اطلاعات حساس (بانک/رمز) را از پروکسی عمومی رد نکن.</div>`}
+function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>${secBadge(r)}</span></div><div class="why" style="padding:6px 0">${secWhy(r)}</div><div class="mu">این فقط ارزیابی شهرت IP و چند شاخص سطحی است؛ رمزنگاری مسیر، ثبت لاگ، شنود یا نشت داده را ثابت نمی‌کند. پروکسی عمومی را برای بانک و رمز استفاده نکن.</div>`}
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
 H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
@@ -199,7 +199,7 @@ const SOURCE_URLS=[
  ["gfpcom HTTP","https://raw.githubusercontent.com/gfpcom/free-proxy-list/main/list/http.txt","HTTP"],
  ["TheSpeedX HTTP","https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt","HTTP"],
  ["jetkai HTTP","https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt","HTTP"],
- ["ProxyScrape HTTPS","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/https/data.txt","HTTPS"],
+ ["ProxyScrape HTTP (HTTPS destinations)","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/https/data.txt","HTTP"],
  ["ProxyScrape SOCKS5","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/socks5/data.txt","SOCKS5"]
 ];
 const SRC=SOURCE_URLS.map(([name,url,type])=>[name,[url],type]);
@@ -234,7 +234,7 @@ async function getTxt(us){
   });
 }
 V.find=()=>{const b=S.busy.find,fn=S.fn||5000;H("#view",`${HTTPS?NOHTTPS:""}<div class="card"><h3><b>🔎</b>گردآورنده و بررسی HTTP / HTTPS / SOCKS5</h3>
-<div class="mu">منابع عمومی را موازی دانلود می‌کند و کاندیداهای یکتا را با چندین تست هم‌زمان بررسی می‌کند. زنده یعنی handshake پروتکل و تونل به مقصد HTTPS با موفقیت برقرار شود. مقصد با TLS استاندارد سیستم (TLS 1.2/1.3 در صورت پشتیبانی اندروید) بررسی می‌شود؛ «TLS 3.14» استانداردی وجود ندارد. اسکنر نوع هر منبع را حفظ می‌کند و HTTP، HTTPS-proxy و SOCKS5 را جداگانه آزمایش می‌کند.</div>
+<div class="mu">منابع عمومی را موازی دانلود می‌کند و کاندیداهای یکتا را با چندین تست هم‌زمان بررسی می‌کند. پاسخ‌گو یعنی handshake پروتکل و پذیرش درخواست CONNECT؛ این به‌تنهایی دسترسی واقعی اینترنت از تونل را تضمین نمی‌کند. مقصد با TLS استاندارد سیستم (TLS 1.2/1.3 در صورت پشتیبانی اندروید) بررسی می‌شود؛ «TLS 3.14» استانداردی وجود ندارد. اسکنر نوع هر منبع را حفظ می‌کند و HTTP، HTTPS-proxy و SOCKS5 را جداگانه آزمایش می‌کند.</div>
 <div class="row"><select id="fn">${[5000,10000,20000].map(v=>`<option value="${v}" ${v==fn?"selected":""}>${v} آی‌پی</option>`).join("")}</select><input id="fm" class="fx" value="${S.fmx}" inputmode="numeric"></div><div class="mu" style="margin-top:-2px">عدد سمت چپ: حداکثر پینگ مجاز (ms)؛ بالاتر از آن در زنده‌ها نمی‌آید</div>
 <div class="mu" style="margin-top:6px">🛡 حداقل ایمنی:</div><select id="sm" onchange="S.minsec=+this.value;st.set('minsec',S.minsec);showFound()">${[[2,"🟢 فقط ایمن"],[1,"🟡 نیمه‌امن و ایمن"],[0,"🔴 همه (بدون فیلتر)"]].map(x=>`<option value="${x[0]}" ${x[0]==S.minsec?"selected":""}>${x[1]}</option>`).join("")}</select>
 <input id="fu" placeholder="آدرس لیست دلخواه (اختیاری) https://..."><textarea id="ft" placeholder="یا لیست IP:PORT را اینجا بچسبان (اختیاری)" style="min-height:60px"></textarea><div class="mu">یا فایل لیست (txt):</div><input id="ff" type="file" accept=".txt,text/plain" style="font-size:12px"><div class="row"><button class="btn" id="fs" onclick="runFind()" ${b?"disabled":""}>▶️ دانلود و اسکن</button><button class="btn alt" onclick="S.stop=true">⏹ توقف</button></div>
@@ -246,7 +246,7 @@ const visF=()=>{const m=S.minsec;return[...S.found].filter(f=>m==0||(f.sec&&f.se
 function showFound(){if(fq)return;fq=requestAnimationFrame(()=>{fq=0;const all=S.found,a=visF(),pend=all.filter(f=>!f.sec).length,chk=all.length-pend;
 const b=a.find(f=>f.sec&&f.sec.lv>=Math.max(1,S.minsec)||f.sec&&S.minsec==0&&f.sec.lv>0);
 const best=b?`<div class="best"><b>🏆 بهترین پروکسی (ایمن‌ترین، سپس سریع‌ترین)</b><div class="item" style="flex-wrap:wrap;border:0"><span class="badge">${esc(b.type||"HTTP")}</span><span class="m">${b.h}:${b.p}</span>${secBadge(b.sec)}${msb(b.ms)}<button class="btn sm alt" data-c="${String(b.type||"HTTP").toLowerCase()}://${b.h}:${b.p}" onclick="cp(this)">📋</button><button class="btn sm" onclick="pickF('${b.h}','${b.p}','${b.type||"HTTP"}')">استفاده</button><div class="why">${secWhy(b.sec)}</div></div></div>`:"";
-const cnt=`<div class="mu">${all.length} پروکسی تأییدشده · ${chk} بررسی‌شدهٔ امنیتی · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (فقط ${S.secN} پینگ برتر بررسی می‌شوند)`:""}</div>`;
+const cnt=`<div class="mu">${all.length} پروکسی با handshake موفق · ${chk} ارزیابی ریسک IP · ${a.length} مطابق فیلتر${pend?` · ${pend} بررسی‌نشده (حداکثر ${S.secN} مورد سریع‌تر بررسی می‌شوند)`:""}</div>`;
 const empty=!all.length?'<div class="empty">هنوز چیزی پیدا نشده</div>':`<div class="empty">${chk?"هیچ پروکسی با این سطح ایمنی پیدا نشد. «نیمه‌امن» را انتخاب کن یا دوباره اسکن بزن.":"بررسی امنیت هنوز انجام نشده؛ دکمهٔ 🛡 را بزن."}</div>`;
 H("#fres",(all.length?cnt:"")+best+(a.length?a.slice(0,100).map(f=>{const k=(f.type||"HTTP")+"|"+f.h+":"+f.p,addr=f.h+":"+f.p;return`<div class="item" style="flex-wrap:wrap"><span class="badge">${esc(f.type||"HTTP")}</span><span class="m">${addr}</span>${f.sec?secBadge(f.sec):""}${msb(f.ms)}<button class="btn sm alt" onclick="stabP('${f.h}','${f.p}',10,'${f.type||"HTTP"}')">📊</button><button class="btn sm" onclick="pickF('${f.h}','${f.p}','${f.type||"HTTP"}')">استفاده</button>${f.sec?`<div class="why">${secWhy(f.sec)}</div>`:""}${S.pst[k]?`<div class="mu" style="width:100%;direction:ltr;text-align:left">${S.pst[k]}</div>`:""}</div>`}).join(""):empty))})}
 function copyFound(){const a=visF();if(a.length)copy(a.map(f=>String(f.type||"HTTP").toLowerCase()+"://"+f.h+":"+f.p).join("\n"));else toast("نتیجه‌ای مطابق فیلتر نیست")}
@@ -312,12 +312,12 @@ async function runFind(){
    if(r.r==="ok"&&r.ms<=mx){S.found.push({h,p,type,ms:r.ms,verified:true});if(S.found.length%4===1)showFound()}
    else if(r.r==="err"&&r.ms<40)failedFast++;
    if(done%5===0||done===items.length){
-    fprog(18+Math.round(done/items.length*82),`تست ${done} از ${items.length} · پروکسی تأییدشده: ${S.found.length}`);
+    fprog(18+Math.round(done/items.length*82),`تست ${done} از ${items.length} · تونل‌پذیر: ${S.found.length}`);
    }
   },()=>S.stop);
   const warn=done>=100&&!S.found.length&&failedFast/done>.8?" ⚠️ تقریباً همهٔ تست‌ها سریع رد شدند؛ اتصال سرویس اندروید یا دسترسی شبکه را بررسی کن.":"";
-  fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پروکسی تأییدشده از ${done} تست · ${ok} منبع فعال${warn}`);
-  L("INFO",`Finder done: ${S.found.length} verified from ${done} tests`);
+  fprog(100,`${S.stop?"متوقف شد":"پایان"} · ${S.found.length} پروکسی با handshake موفق از ${done} تست · ${ok} منبع فعال${warn}`);
+  L("INFO",`Finder done: ${S.found.length} proxy handshakes accepted from ${done} tests`);\n  if(!S.stop&&S.found.length){fprog(100,`اسکن تمام شد؛ بررسی امنیت ${Math.min(S.found.length,S.secN)} مورد برتر شروع می‌شود...`);await secScan(false)}
  }catch(e){
   L("ERR","Finder: "+(e&&e.message||e));
   fprog(S.fp,"❌ خطای اسکن: "+(e&&e.message||"خطای ناشناخته"));
