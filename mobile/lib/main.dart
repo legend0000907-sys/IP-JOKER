@@ -294,17 +294,3 @@ class _SocketReader {
     }
   }
 }
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/material.dart';
-import 'package:sing_box/sing_box.dart';
-import 'package:ip_joker/proxy_link.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const IpJokerApp());
-}
-
