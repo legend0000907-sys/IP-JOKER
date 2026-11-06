@@ -186,7 +186,22 @@ function secHtml(r){return`<div class="kv"><span>سطح امنیت</span><span>$
 async function secProxy(){const p=rd();if(!p.host||!p.port)return H("#pr",'<span class="r">آدرس و پورت را وارد کن</span>');if(!isPub4(p.host)&&/^[\d.]+$/.test(p.host))return H("#pr",secHtml(scoreSec({h:p.host,p:p.port,ms:9e9})));if(!/^\d+\.\d+\.\d+\.\d+$/.test(p.host))return H("#pr",'<span class="a">بررسی امنیت فقط برای IPv4 است (دامنه/IPv6 پشتیبانی نمی‌شود)</span>');
 H("#pr",'<span class="sk"></span>');const t=await probe(p.host,p.port,6000,p.type=="HTTPS"?"https":"http"),r=await secOne(p.host,p.port,t.r=="ok"?t.ms:9e9);H("#pr",(t.r=="ok"?"":'<div class="a">⚠️ پروکسی در تست اتصال پاسخ نداد؛ امتیاز فقط بر اساس IP/پورت است.</div>')+secHtml(r))}
 // ---------- finder
-const SOURCE_URLS=["HTTP","HTTPS","SOCKS5"].map(type=>["ProxyScrape "+type,"https://api.proxyscrape.com/v2/?request=getproxies&protocol="+type.toLowerCase()+"&timeout=10000&country=all&ssl=all&anonymity=all",type]);
+const SOURCE_URLS=[
+ ["ProxyScrape HTTP","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/http/data.txt","HTTP"],
+ ["Litport HTTP","https://raw.githubusercontent.com/litportnet/free-proxy-list/live/proxies/http.txt","HTTP"],
+ ["VMHeaven HTTP","https://raw.githubusercontent.com/vmheaven/VMHeaven-Free-Proxy-Updated/refs/heads/main/http.txt","HTTP"],
+ ["KangProxy HTTP","https://cdn.jsdelivr.net/gh/officialputuid/KangProxy@main/http/http.txt","HTTP"],
+ ["Monosans HTTP","https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt","HTTP"],
+ ["Tsprnay HTTP","https://raw.githubusercontent.com/Tsprnay/Proxy-lists/master/proxies/http.txt","HTTP"],
+ ["ObcbO HTTP","https://raw.githubusercontent.com/ObcbO/getproxy/master/file/http.txt","HTTP"],
+ ["ProxyScraper HTTP mirror","https://raw.githubusercontent.com/ProxyScrape/ProxyScraper/main/http.txt","HTTP"],
+ ["dpangestuw HTTP","https://raw.githubusercontent.com/dpangestuw/Free-Proxy/main/http_proxies.txt","HTTP"],
+ ["gfpcom HTTP","https://raw.githubusercontent.com/gfpcom/free-proxy-list/main/list/http.txt","HTTP"],
+ ["TheSpeedX HTTP","https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt","HTTP"],
+ ["jetkai HTTP","https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt","HTTP"],
+ ["ProxyScrape HTTPS","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/https/data.txt","HTTPS"],
+ ["ProxyScrape SOCKS5","https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/protocols/socks5/data.txt","SOCKS5"]
+];
 const SRC=SOURCE_URLS.map(([name,url,type])=>[name,[url],type]);
 const px=u=>["https://api.allorigins.win/raw?url="+encodeURIComponent(u)];
 const host=u=>{try{return new URL(u).hostname}catch(e){return u}};
