@@ -40,7 +40,7 @@ jobs:
       - name: Static analysis
         working-directory: mobile
         run: flutter analyze
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Run unit tests (when tests exist)
         if: hashFiles('mobile/test/**/*_test.dart') != ''
