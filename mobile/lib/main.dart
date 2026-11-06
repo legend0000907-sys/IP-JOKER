@@ -206,10 +206,12 @@ class _IpJokerHomeState extends State<IpJokerHome> {
           final proxyLink = buildProxyLink(host: host, port: port, type: type);
           await SingBox.instance.requestNotificationPermission();
           await _serializeVpn(() => SingBox.instance.connect(proxyLink));
+          await Future<void>.delayed(const Duration(milliseconds: 700));
+          final active = SingBox.instance.status.isActive;
           await _reply(id, {
-            'ok': true,
-            'connected': SingBox.instance.status.isActive,
-            'message': 'تونل VPN برقرار شد',
+            'ok': active,
+            'connected': active,
+            'message': active ? 'سرویس VPN فعال شد؛ دسترسی واقعی اینترنت هنوز باید آزمایش شود' : 'موتور VPN فعال نشد؛ وضعیت اتصال ناموفق است',
           });
           break;
 
